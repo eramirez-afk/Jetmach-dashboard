@@ -145,86 +145,67 @@
   }
 
   /* Tabs */
-  .tabs{
-    display:flex;align-items:center;gap:6px;margin-bottom:22px;
-    border-bottom:1px solid var(--hairline);padding-bottom:0;
-  }
+  .tabs{display:flex;gap:4px;margin-bottom:20px;border-bottom:1px solid var(--hairline);}
   .tab-btn{
-    background:transparent;border:none;color:var(--text-dim);
-    font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:600;
-    padding:10px 16px;cursor:pointer;border-bottom:2px solid transparent;
-    margin-bottom:-1px;
+    background:none;border:none;color:var(--text-dim);
+    font-family:'IBM Plex Mono',monospace;font-size:12.5px;letter-spacing:.05em;text-transform:uppercase;
+    padding:10px 4px;margin-right:22px;cursor:pointer;
+    border-bottom:2px solid transparent;
   }
-  .tab-btn:hover{color:var(--text);}
   .tab-btn.active{color:var(--gold);border-bottom-color:var(--gold);}
-  .tab-count{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text-dim);}
-  .tab-panel{display:none;}
-  .tab-panel.active{display:block;}
+  .tab-btn:hover{color:var(--text);}
 
-  .sync-indicator{
-    margin-left:auto;display:flex;align-items:center;gap:8px;
-    font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text-dim);
-    padding-bottom:10px;
+  /* Toolbar */
+  .toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap;}
+  .toolbar-left{display:flex;gap:10px;align-items:center;flex:1;min-width:220px;}
+  .search-input{
+    flex:1;max-width:320px;background:var(--panel-2);border:1px solid var(--hairline);color:var(--text);
+    font-family:'IBM Plex Mono',monospace;font-size:13px;padding:9px 12px;border-radius:6px;outline:none;
   }
-  .sync-indicator .dot{width:6px;height:6px;border-radius:50%;background:var(--rose);}
-  .sync-indicator .dot.on{background:var(--teal);box-shadow:0 0 6px var(--teal);}
-  .sync-indicator .dot.off{background:#4a5670;}
-  .mini-btn{
-    background:var(--panel-2);border:1px solid var(--hairline);color:var(--gold);
-    font-family:'IBM Plex Mono',monospace;font-size:11px;padding:4px 10px;border-radius:5px;
-    cursor:pointer;
+  .search-input:focus{border-color:var(--gold);}
+  .btn{
+    font-family:'IBM Plex Mono',monospace;font-size:12.5px;letter-spacing:.03em;
+    padding:9px 16px;border-radius:6px;border:1px solid var(--hairline);
+    background:var(--panel-2);color:var(--text);cursor:pointer;
   }
-  .mini-btn:hover{border-color:var(--gold);}
+  .btn:hover{border-color:var(--gold);}
+  .btn.primary{background:var(--gold);color:#0A0F1C;border-color:var(--gold);font-weight:600;}
+  .btn.primary:hover{background:#e8b555;}
+  .btn.ghost{background:none;}
+  .sync-badge{
+    font-family:'IBM Plex Mono',monospace;font-size:11px;padding:5px 10px;border-radius:20px;
+    background:rgba(139,151,172,0.12);color:var(--text-dim);white-space:nowrap;
+  }
+  .sync-badge.ok{background:rgba(79,209,197,0.14);color:var(--teal);}
+  .sync-badge.warn{background:rgba(217,164,65,0.14);color:var(--gold);}
+  .sync-badge.err{background:rgba(226,114,91,0.14);color:var(--rose);}
 
-  /* Operaciones toolbar */
-  .ops-toolbar{display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap;}
-  .ops-toolbar input[type=text]{
-    background:var(--panel-2);border:1px solid var(--hairline);color:var(--text);
-    font-family:'IBM Plex Mono',monospace;font-size:13px;padding:9px 12px;border-radius:6px;
-    outline:none;min-width:220px;
-  }
-  .ops-toolbar input[type=text]:focus{border-color:var(--gold);}
-  .btn-primary{
-    background:var(--gold);color:#1a1305;border:none;font-weight:600;
-    font-family:'Space Grotesk',sans-serif;font-size:13px;padding:10px 18px;
-    border-radius:6px;cursor:pointer;margin-left:auto;
-  }
-  .btn-primary:hover{background:#e6b657;}
-  .row-actions button{
-    background:none;border:none;color:var(--rose);cursor:pointer;font-size:15px;
-    font-family:'IBM Plex Mono',monospace;
-  }
-  .row-actions button:hover{text-decoration:underline;}
+  th.sortable{cursor:pointer;user-select:none;}
+  th.sortable:hover{color:var(--gold);}
+  th.sortable .arrow{opacity:.5;margin-left:3px;}
 
   /* Modal */
   .modal-overlay{
-    display:none;position:fixed;inset:0;background:rgba(4,7,14,0.72);
-    z-index:50;align-items:center;justify-content:center;padding:20px;
+    position:fixed;inset:0;background:rgba(4,7,13,0.75);backdrop-filter:blur(2px);
+    display:none;align-items:center;justify-content:center;z-index:50;padding:20px;
   }
   .modal-overlay.open{display:flex;}
   .modal{
     background:var(--panel);border:1px solid var(--hairline);border-radius:var(--radius);
-    padding:24px;width:100%;max-width:480px;
+    width:100%;max-width:520px;padding:22px 24px 20px;
   }
-  .modal h3{font-family:'Space Grotesk',sans-serif;margin:0 0 18px;font-size:18px;}
-  .field{margin-bottom:14px;}
-  .field label{display:block;font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em;font-family:'IBM Plex Mono',monospace;margin-bottom:6px;}
+  .modal h3{font-family:'Space Grotesk',sans-serif;font-size:18px;margin:0 0 16px;}
+  .field{margin-bottom:12px;}
+  .field label{display:block;font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em;font-family:'IBM Plex Mono',monospace;margin-bottom:5px;}
   .field input, .field select{
     width:100%;background:var(--panel-2);border:1px solid var(--hairline);color:var(--text);
-    font-family:'IBM Plex Mono',monospace;font-size:13px;padding:9px 12px;border-radius:6px;outline:none;
+    font-family:'IBM Plex Mono',monospace;font-size:13px;padding:9px 11px;border-radius:6px;outline:none;
   }
   .field input:focus, .field select:focus{border-color:var(--gold);}
-  .field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-  .modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:20px;}
-  .btn-ghost{
-    background:transparent;border:1px solid var(--hairline);color:var(--text-dim);
-    font-family:'Space Grotesk',sans-serif;font-size:13px;padding:9px 16px;border-radius:6px;cursor:pointer;
-  }
-  .btn-ghost:hover{color:var(--text);border-color:var(--text-dim);}
-  .modal-msg{font-size:12px;font-family:'IBM Plex Mono',monospace;margin-top:10px;min-height:16px;}
-  .modal-msg.err{color:var(--rose);}
-  .modal-msg.ok{color:var(--teal);}
-  .modal small.hint{display:block;color:var(--text-dim);font-size:11px;margin-top:4px;}
+  .field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:18px;}
+  .modal-note{font-size:11.5px;color:var(--text-dim);margin-top:4px;line-height:1.5;}
+  .modal-note a{color:var(--gold);}
 
   @media (max-width:900px){
     .grid{grid-template-columns:1fr;}
@@ -257,15 +238,10 @@
 
   <nav class="tabs">
     <button class="tab-btn active" data-tab="resumen">Resumen</button>
-    <button class="tab-btn" data-tab="operaciones">Operaciones <span id="opCount" class="tab-count"></span></button>
-    <div class="sync-indicator" id="syncIndicator">
-      <span class="dot off"></span>
-      <span id="syncLabel">GitHub no conectado</span>
-      <button id="syncBtn" class="mini-btn">Conectar</button>
-    </div>
+    <button class="tab-btn" data-tab="operaciones">Operaciones</button>
   </nav>
 
-  <div id="tab-resumen" class="tab-panel active">
+  <section id="view-resumen">
 
   <div class="kpis">
     <div class="kpi">
@@ -323,35 +299,61 @@
     </div>
   </div>
 
-  </div><!-- /tab-resumen -->
+  <div class="panel full">
+    <h2>Bitácora de eventos <small id="logSub">filtrado, últimos 150</small></h2>
+    <div class="table-scroll">
+      <table id="logTable">
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Matrícula</th>
+            <th>Tipo</th>
+            <th>Cliente</th>
+            <th class="num">Facturado</th>
+            <th class="num">Costo</th>
+            <th class="num">Margen</th>
+            <th class="num">%</th>
+          </tr>
+        </thead>
+        <tbody id="logTbody"></tbody>
+      </table>
+    </div>
+  </div>
 
-  <div id="tab-operaciones" class="tab-panel">
-    <div class="panel full">
-      <h2>Todas las operaciones <small id="logSub">cargando…</small></h2>
-      <div class="ops-toolbar">
-        <input type="text" id="opSearch" placeholder="Buscar por matrícula, cliente, tipo, factura…">
-        <button class="btn-primary" id="addOpBtn">+ Nueva operación</button>
+  </section>
+
+  <section id="view-operaciones" style="display:none;">
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <input type="text" class="search-input" id="opSearch" placeholder="Buscar por matrícula, cliente, tipo…">
+        <span class="sync-badge" id="syncBadge">local</span>
       </div>
-      <div class="table-scroll" style="max-height:560px;">
-        <table id="logTable">
+      <div style="display:flex;gap:8px;">
+        <button class="btn ghost" id="btnSettings">⚙ Sincronización</button>
+        <button class="btn primary" id="btnAddOp">+ Nueva operación</button>
+      </div>
+    </div>
+
+    <div class="panel full" style="padding-top:6px;">
+      <div class="table-scroll" style="max-height:640px;">
+        <table id="opsTable">
           <thead>
             <tr>
-              <th>Fecha</th>
-              <th>Matrícula</th>
-              <th>Tipo</th>
-              <th>Cliente</th>
-              <th class="num">Facturado</th>
-              <th class="num">Costo</th>
-              <th class="num">Margen</th>
-              <th class="num">%</th>
-              <th></th>
+              <th class="sortable" data-key="fecha">Fecha <span class="arrow">↕</span></th>
+              <th class="sortable" data-key="matricula">Matrícula <span class="arrow">↕</span></th>
+              <th class="sortable" data-key="tipo_evento">Tipo <span class="arrow">↕</span></th>
+              <th class="sortable" data-key="cliente">Cliente <span class="arrow">↕</span></th>
+              <th class="num sortable" data-key="facturado">Facturado <span class="arrow">↕</span></th>
+              <th class="num sortable" data-key="costo">Costo <span class="arrow">↕</span></th>
+              <th class="num sortable" data-key="margen">Margen <span class="arrow">↕</span></th>
+              <th class="num sortable" data-key="margen_pct">% <span class="arrow">↕</span></th>
             </tr>
           </thead>
-          <tbody id="logTbody"></tbody>
+          <tbody id="opsTbody"></tbody>
         </table>
       </div>
     </div>
-  </div><!-- /tab-operaciones -->
+  </section>
 
   <footer>Paurema Ground Handling · MMAN / MMMY — dashboard generado desde Costos_de_Handling_JETMACH · actualiza data.json para refrescar</footer>
 </div>
@@ -392,37 +394,36 @@
         <input type="number" id="fCosto" step="0.01" placeholder="0.00">
       </div>
     </div>
-    <small class="hint">Margen y % se calculan automáticamente.</small>
+    <div class="modal-note" id="opModalError" style="color:var(--rose);display:none;"></div>
     <div class="modal-actions">
-      <button class="btn-ghost" id="opCancelBtn">Cancelar</button>
-      <button class="btn-primary" style="margin-left:0;" id="opSaveBtn">Guardar</button>
+      <button class="btn ghost" id="btnCancelOp">Cancelar</button>
+      <button class="btn primary" id="btnSaveOp">Guardar operación</button>
     </div>
-    <div class="modal-msg" id="opModalMsg"></div>
   </div>
 </div>
 
-<!-- Modal: sincronizar GitHub -->
-<div class="modal-overlay" id="syncModalOverlay">
+<!-- Modal: settings / sync -->
+<div class="modal-overlay" id="settingsModalOverlay">
   <div class="modal">
-    <h3>Conectar con GitHub</h3>
+    <h3>Sincronización con GitHub</h3>
     <div class="field">
       <label>Repositorio</label>
-      <input type="text" id="ghRepo" value="eramirez-afk/Jetmach-dashboard">
+      <input type="text" id="sRepo" placeholder="usuario/repositorio" value="eramirez-afk/Jetmach-dashboard">
     </div>
     <div class="field">
-      <label>Rama</label>
-      <input type="text" id="ghBranch" value="main">
+      <label>Token de acceso personal (fine-grained, permiso Contents: Read/Write)</label>
+      <input type="password" id="sToken" placeholder="github_pat_...">
     </div>
-    <div class="field">
-      <label>Token de acceso personal</label>
-      <input type="password" id="ghToken" placeholder="github_pat_...">
-      <small class="hint">Solo se guarda en la memoria de esta pestaña del navegador — nunca se escribe en el repo ni persiste al cerrar. Necesitas un fine-grained token con permiso "Contents: Read and write" sobre este repo.</small>
+    <div class="modal-note">
+      El token se guarda solo en este navegador (localStorage), nunca se sube al repositorio.
+      Genera uno en <a href="https://github.com/settings/tokens" target="_blank">github.com/settings/tokens</a>,
+      con acceso limitado a este repositorio y permiso "Contents: Read and write".
+      Si usas esta página desde otra computadora, tendrás que pegar el token de nuevo ahí.
     </div>
     <div class="modal-actions">
-      <button class="btn-ghost" id="syncCancelBtn">Cancelar</button>
-      <button class="btn-primary" style="margin-left:0;" id="syncConnectBtn">Conectar</button>
+      <button class="btn ghost" id="btnClearToken">Borrar token</button>
+      <button class="btn primary" id="btnSaveSettings">Guardar</button>
     </div>
-    <div class="modal-msg" id="syncModalMsg"></div>
   </div>
 </div>
 
@@ -435,81 +436,6 @@ const fmtPct = n => (n*100).toFixed(1) + '%';
 
 let RAW = [];
 let trendChart, typeChart;
-let opSearchTerm = '';
-
-// ---- GitHub sync state (in-memory only, never persisted) ----
-const gh = { token:null, repo:'eramirez-afk/Jetmach-dashboard', branch:'main', dataSha:null, connected:false };
-
-function setSyncUI(connected, label){
-  const dot = document.querySelector('#syncIndicator .dot');
-  const lbl = document.getElementById('syncLabel');
-  const btn = document.getElementById('syncBtn');
-  dot.classList.toggle('on', connected);
-  dot.classList.toggle('off', !connected);
-  lbl.textContent = label || (connected ? 'GitHub conectado' : 'GitHub no conectado');
-  btn.textContent = connected ? 'Reconectar' : 'Conectar';
-}
-
-document.getElementById('syncBtn').addEventListener('click', ()=>{
-  document.getElementById('syncModalOverlay').classList.add('open');
-});
-document.getElementById('syncCancelBtn').addEventListener('click', ()=>{
-  document.getElementById('syncModalOverlay').classList.remove('open');
-});
-document.getElementById('syncConnectBtn').addEventListener('click', async ()=>{
-  const msg = document.getElementById('syncModalMsg');
-  const token = document.getElementById('ghToken').value.trim();
-  const repo = document.getElementById('ghRepo').value.trim();
-  const branch = document.getElementById('ghBranch').value.trim() || 'main';
-  if(!token){ msg.textContent = 'Ingresa un token.'; msg.className='modal-msg err'; return; }
-  msg.textContent = 'Verificando…'; msg.className = 'modal-msg';
-  try{
-    const res = await fetch(`https://api.github.com/repos/${repo}/contents/data.json?ref=${branch}`, {
-      headers:{ 'Authorization':`Bearer ${token}`, 'Accept':'application/vnd.github+json' }
-    });
-    if(!res.ok) throw new Error(res.status===404?'No se encontró data.json en ese repo/rama.':'Token inválido o sin permisos.');
-    const info = await res.json();
-    gh.token = token; gh.repo = repo; gh.branch = branch; gh.dataSha = info.sha; gh.connected = true;
-    setSyncUI(true, `Conectado a ${repo}`);
-    msg.textContent = 'Conectado correctamente.'; msg.className = 'modal-msg ok';
-    setTimeout(()=>document.getElementById('syncModalOverlay').classList.remove('open'), 700);
-  }catch(e){
-    msg.textContent = e.message; msg.className = 'modal-msg err';
-    setSyncUI(false);
-  }
-});
-
-async function commitDataJson(newRaw, commitMsg){
-  if(!gh.connected) return {ok:false, reason:'no-sync'};
-  const body = {
-    message: commitMsg || `Actualiza data.json vía dashboard (${new Date().toISOString()})`,
-    content: btoa(unescape(encodeURIComponent(JSON.stringify(newRaw)))),
-    sha: gh.dataSha,
-    branch: gh.branch
-  };
-  const res = await fetch(`https://api.github.com/repos/${gh.repo}/contents/data.json`, {
-    method:'PUT',
-    headers:{ 'Authorization':`Bearer ${gh.token}`, 'Accept':'application/vnd.github+json' },
-    body: JSON.stringify(body)
-  });
-  if(!res.ok){
-    const err = await res.json().catch(()=>({}));
-    return {ok:false, reason: err.message || `HTTP ${res.status}`};
-  }
-  const info = await res.json();
-  gh.dataSha = info.content.sha;
-  return {ok:true};
-}
-
-// ---- Tabs ----
-document.querySelectorAll('.tab-btn').forEach(btn=>{
-  btn.addEventListener('click', ()=>{
-    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-    document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
-    btn.classList.add('active');
-    document.getElementById('tab-'+btn.dataset.tab).classList.add('active');
-  });
-});
 
 async function loadData(){
   try{
@@ -566,7 +492,7 @@ function render(){
   renderTrend(data, y, m);
   renderTypeChart(data);
   renderClientTable(data);
-  renderLog();
+  renderLog(data);
 }
 
 function renderTrend(data, yFilter, mFilter){
@@ -682,26 +608,11 @@ function renderClientTable(data){
   `).join('');
 }
 
-function renderLog(){
-  // Operaciones tab always shows ALL records (not limited by year/month filters),
-  // filtered only by the search box, so it's a full ledger you can add to.
-  let rows = [...RAW];
-  if(opSearchTerm){
-    const q = opSearchTerm.toLowerCase();
-    rows = rows.filter(r =>
-      (r.matricula||'').toLowerCase().includes(q) ||
-      (r.cliente||'').toLowerCase().includes(q) ||
-      (r.tipo_evento||'').toLowerCase().includes(q) ||
-      (r.fecha||'').includes(q)
-    );
-  }
-  rows.sort((a,b)=> b.fecha.localeCompare(a.fecha));
-
-  document.getElementById('logSub').textContent = `${rows.length} de ${RAW.length} registros`;
-  document.getElementById('opCount').textContent = RAW.length;
-
+function renderLog(data){
+  const sorted = [...data].sort((a,b)=> b.fecha.localeCompare(a.fecha));
+  document.getElementById('logSub').textContent = `${sorted.length} registros`;
   const tbody = document.getElementById('logTbody');
-  tbody.innerHTML = rows.map((r,i)=>`
+  tbody.innerHTML = sorted.slice(0,150).map(r=>`
     <tr>
       <td>${r.fecha}</td>
       <td>${r.matricula||''}</td>
@@ -711,89 +622,192 @@ function renderLog(){
       <td class="num">${fmtMoney(r.costo)}</td>
       <td class="num">${fmtMoney(r.margen)}</td>
       <td class="num"><span class="pill ${r.margen_pct<0?'neg':''}">${fmtPct(r.margen_pct)}</span></td>
-      <td class="row-actions"><button data-idx="${RAW.indexOf(r)}" class="delOpBtn" title="Eliminar">✕</button></td>
     </tr>
   `).join('');
+}
 
-  tbody.querySelectorAll('.delOpBtn').forEach(btn=>{
-    btn.addEventListener('click', async ()=>{
-      const idx = +btn.dataset.idx;
-      if(!confirm('¿Eliminar esta operación?')) return;
-      RAW.splice(idx,1);
-      renderLog();
-      render();
-      if(gh.connected){
-        const r = await commitDataJson(RAW, 'Elimina operación vía dashboard');
-        setSyncUI(true, r.ok ? `Sincronizado (${gh.repo})` : `Error al guardar: ${r.reason}`);
-      }
-    });
+/* ---------------- Tabs ---------------- */
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    const tab = btn.dataset.tab;
+    document.getElementById('view-resumen').style.display = tab==='resumen' ? '' : 'none';
+    document.getElementById('view-operaciones').style.display = tab==='operaciones' ? '' : 'none';
+    if(tab==='operaciones') renderOpsTable();
   });
-}
-
-document.getElementById('opSearch').addEventListener('input', (e)=>{
-  opSearchTerm = e.target.value.trim();
-  renderLog();
 });
 
-// ---- Add operation modal ----
-function fillDatalists(){
-  const clientes = [...new Set(RAW.map(r=>r.cliente))].sort();
+/* ---------------- Operaciones: state ---------------- */
+let opsSort = {key:'fecha', dir:'desc'};
+let opsSearch = '';
+let currentSha = null; // sha of data.json in the repo, refreshed on sync
+
+function populateDatalists(){
   const tipos = [...new Set(RAW.map(r=>r.tipo_evento))].sort();
-  document.getElementById('clienteList').innerHTML = clientes.map(c=>`<option value="${c}">`).join('');
+  const clientes = [...new Set(RAW.map(r=>r.cliente))].sort();
   document.getElementById('tipoList').innerHTML = tipos.map(t=>`<option value="${t}">`).join('');
+  document.getElementById('clienteList').innerHTML = clientes.map(c=>`<option value="${c}">`).join('');
 }
 
-document.getElementById('addOpBtn').addEventListener('click', ()=>{
-  ['fFecha','fMatricula','fTipo','fCliente','fFacturado','fCosto'].forEach(id=>document.getElementById(id).value='');
-  document.getElementById('opModalMsg').textContent='';
-  fillDatalists();
-  document.getElementById('opModalOverlay').classList.add('open');
-});
-document.getElementById('opCancelBtn').addEventListener('click', ()=>{
-  document.getElementById('opModalOverlay').classList.remove('open');
+document.getElementById('opSearch').addEventListener('input', e=>{
+  opsSearch = e.target.value.toLowerCase();
+  renderOpsTable();
 });
 
-document.getElementById('opSaveBtn').addEventListener('click', async ()=>{
-  const msg = document.getElementById('opModalMsg');
+document.querySelectorAll('#opsTable th.sortable').forEach(th=>{
+  th.addEventListener('click', ()=>{
+    const key = th.dataset.key;
+    if(opsSort.key === key){ opsSort.dir = opsSort.dir==='asc' ? 'desc' : 'asc'; }
+    else { opsSort = {key, dir:'asc'}; }
+    renderOpsTable();
+  });
+});
+
+function renderOpsTable(){
+  let rows = RAW.filter(r=>{
+    if(!opsSearch) return true;
+    return (r.matricula||'').toLowerCase().includes(opsSearch)
+      || (r.cliente||'').toLowerCase().includes(opsSearch)
+      || (r.tipo_evento||'').toLowerCase().includes(opsSearch)
+      || (r.fecha||'').includes(opsSearch);
+  });
+  const {key, dir} = opsSort;
+  rows = [...rows].sort((a,b)=>{
+    let va=a[key], vb=b[key];
+    if(typeof va === 'string'){ va=va.toLowerCase(); vb=(vb||'').toLowerCase(); }
+    if(va<vb) return dir==='asc' ? -1 : 1;
+    if(va>vb) return dir==='asc' ? 1 : -1;
+    return 0;
+  });
+  document.getElementById('opsTbody').innerHTML = rows.map(r=>`
+    <tr>
+      <td>${r.fecha}</td>
+      <td>${r.matricula||''}</td>
+      <td>${r.tipo_evento}</td>
+      <td>${r.cliente}</td>
+      <td class="num">${fmtMoney(r.facturado)}</td>
+      <td class="num">${fmtMoney(r.costo)}</td>
+      <td class="num">${fmtMoney(r.margen)}</td>
+      <td class="num"><span class="pill ${r.margen_pct<0?'neg':''}">${fmtPct(r.margen_pct)}</span></td>
+    </tr>
+  `).join('');
+}
+
+/* ---------------- Add operation modal ---------------- */
+const opModal = document.getElementById('opModalOverlay');
+document.getElementById('btnAddOp').addEventListener('click', ()=>{
+  populateDatalists();
+  ['fFecha','fMatricula','fTipo','fCliente','fFacturado','fCosto'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('opModalError').style.display='none';
+  opModal.classList.add('open');
+});
+document.getElementById('btnCancelOp').addEventListener('click', ()=>opModal.classList.remove('open'));
+opModal.addEventListener('click', e=>{ if(e.target===opModal) opModal.classList.remove('open'); });
+
+document.getElementById('btnSaveOp').addEventListener('click', async ()=>{
   const fecha = document.getElementById('fFecha').value;
   const matricula = document.getElementById('fMatricula').value.trim();
   const tipo_evento = document.getElementById('fTipo').value.trim();
   const cliente = document.getElementById('fCliente').value.trim();
-  const facturado = parseFloat(document.getElementById('fFacturado').value);
-  const costo = parseFloat(document.getElementById('fCosto').value);
+  const facturado = parseFloat(document.getElementById('fFacturado').value) || 0;
+  const costo = parseFloat(document.getElementById('fCosto').value) || 0;
 
-  if(!fecha || !cliente || isNaN(facturado) || isNaN(costo)){
-    msg.textContent = 'Completa al menos fecha, cliente, facturado y costo.';
-    msg.className = 'modal-msg err';
+  const errBox = document.getElementById('opModalError');
+  if(!fecha || !cliente || !tipo_evento){
+    errBox.textContent = 'Fecha, cliente y tipo de evento son obligatorios.';
+    errBox.style.display = 'block';
     return;
   }
+
   const margen = facturado - costo;
   const margen_pct = facturado ? margen/facturado : 0;
-  const [y,m] = fecha.split('-').map(Number);
-  const record = { fecha, matricula, tipo_evento: tipo_evento||'SIN CLASIFICAR', cliente, facturado, costo, margen, margen_pct, year:y, month:m };
+  const [y,m] = fecha.split('-');
+  const record = {
+    fecha, matricula, tipo_evento, cliente,
+    facturado, costo, margen, margen_pct,
+    year: parseInt(y), month: parseInt(m)
+  };
 
   RAW.push(record);
-  init(); // refresh filters in case a new year appeared
-  document.querySelector('.tab-btn[data-tab="operaciones"]').click();
+  init(); // rebuild filters + rerender resumen
+  renderOpsTable();
+  opModal.classList.remove('open');
 
-  if(gh.connected){
-    msg.textContent = 'Guardando en GitHub…'; msg.className='modal-msg';
-    const r = await commitDataJson(RAW, `Agrega operación ${matricula||cliente} ${fecha}`);
-    if(r.ok){
-      setSyncUI(true, `Sincronizado (${gh.repo})`);
-      msg.textContent = 'Guardado en GitHub ✓'; msg.className='modal-msg ok';
-      setTimeout(()=>document.getElementById('opModalOverlay').classList.remove('open'), 700);
-    } else {
-      msg.textContent = 'Se agregó localmente, pero falló el guardado en GitHub: '+r.reason;
-      msg.className='modal-msg err';
-    }
-  } else {
-    msg.textContent = 'Agregado localmente. Conecta GitHub (arriba) para que se guarde de forma permanente.';
-    msg.className = 'modal-msg ok';
-    setTimeout(()=>document.getElementById('opModalOverlay').classList.remove('open'), 1400);
-  }
+  await syncToGitHub(`Agregar operación: ${matricula||cliente} — ${fecha}`);
 });
 
+/* ---------------- Settings modal ---------------- */
+const settingsModal = document.getElementById('settingsModalOverlay');
+document.getElementById('btnSettings').addEventListener('click', ()=>{
+  document.getElementById('sRepo').value = localStorage.getItem('jetmach_repo') || 'eramirez-afk/Jetmach-dashboard';
+  document.getElementById('sToken').value = localStorage.getItem('jetmach_gh_token') || '';
+  settingsModal.classList.add('open');
+});
+settingsModal.addEventListener('click', e=>{ if(e.target===settingsModal) settingsModal.classList.remove('open'); });
+
+document.getElementById('btnSaveSettings').addEventListener('click', ()=>{
+  localStorage.setItem('jetmach_repo', document.getElementById('sRepo').value.trim());
+  localStorage.setItem('jetmach_gh_token', document.getElementById('sToken').value.trim());
+  settingsModal.classList.remove('open');
+  updateSyncBadge();
+});
+document.getElementById('btnClearToken').addEventListener('click', ()=>{
+  localStorage.removeItem('jetmach_gh_token');
+  document.getElementById('sToken').value = '';
+  updateSyncBadge();
+});
+
+function updateSyncBadge(state){
+  const badge = document.getElementById('syncBadge');
+  const hasToken = !!localStorage.getItem('jetmach_gh_token');
+  if(state === 'syncing'){ badge.textContent = 'sincronizando…'; badge.className='sync-badge warn'; return; }
+  if(state === 'ok'){ badge.textContent = 'sincronizado ✓'; badge.className='sync-badge ok'; return; }
+  if(state === 'err'){ badge.textContent = 'error al sincronizar'; badge.className='sync-badge err'; return; }
+  badge.textContent = hasToken ? 'conectado a GitHub' : 'solo local — configura sincronización';
+  badge.className = hasToken ? 'sync-badge ok' : 'sync-badge warn';
+}
+
+/* ---------------- GitHub sync ---------------- */
+function utf8ToBase64(str){
+  return btoa(unescape(encodeURIComponent(str)));
+}
+
+async function syncToGitHub(message){
+  const token = localStorage.getItem('jetmach_gh_token');
+  const repo = localStorage.getItem('jetmach_repo') || 'eramirez-afk/Jetmach-dashboard';
+  if(!token){ updateSyncBadge(); return false; }
+
+  updateSyncBadge('syncing');
+  try{
+    // fetch latest sha to avoid conflicts
+    const getRes = await fetch(`https://api.github.com/repos/${repo}/contents/data.json`, {
+      headers:{ 'Authorization':`Bearer ${token}`, 'Accept':'application/vnd.github+json' }
+    });
+    if(!getRes.ok) throw new Error('No se pudo leer data.json actual (' + getRes.status + ')');
+    const getData = await getRes.json();
+    currentSha = getData.sha;
+
+    const content = utf8ToBase64(JSON.stringify(RAW));
+    const putRes = await fetch(`https://api.github.com/repos/${repo}/contents/data.json`, {
+      method:'PUT',
+      headers:{ 'Authorization':`Bearer ${token}`, 'Accept':'application/vnd.github+json' },
+      body: JSON.stringify({ message, content, sha: currentSha, branch:'main' })
+    });
+    if(!putRes.ok){
+      const errBody = await putRes.json().catch(()=>({}));
+      throw new Error(errBody.message || ('HTTP ' + putRes.status));
+    }
+    updateSyncBadge('ok');
+    return true;
+  }catch(e){
+    console.error('Sync error:', e);
+    updateSyncBadge('err');
+    return false;
+  }
+}
+
+updateSyncBadge();
 loadData();
 </script>
 </body>
