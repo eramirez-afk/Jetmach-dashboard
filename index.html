@@ -326,6 +326,10 @@
     <div class="toolbar">
       <div class="toolbar-left">
         <input type="text" class="search-input" id="opSearch" placeholder="Buscar por matrícula, cliente, tipo…">
+        <label style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;font-family:'IBM Plex Mono',monospace;">Año</label>
+        <select id="opYearFilter"></select>
+        <label style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;font-family:'IBM Plex Mono',monospace;">Mes</label>
+        <select id="opMonthFilter"></select>
         <span class="sync-badge" id="syncBadge">local</span>
       </div>
       <div style="display:flex;gap:8px;">
@@ -458,13 +462,22 @@ function init(){
   const monthSel = document.getElementById('monthFilter');
   monthSel.innerHTML = '<option value="all">Todos</option>' + Array.from({length:12},(_,i)=>i+1).map(m=>`<option value="${m}">${MESES[m]}</option>`).join('');
 
+  const opYearSel = document.getElementById('opYearFilter');
+  const opMonthSel = document.getElementById('opMonthFilter');
+  opYearSel.innerHTML = yearSel.innerHTML;
+  opMonthSel.innerHTML = monthSel.innerHTML;
+  opYearSel.value = yearSel.value;
+  opMonthSel.value = monthSel.value;
+
   const dates = RAW.map(r=>r.fecha).sort();
   if(dates.length){
     document.getElementById('rangeLabel').textContent = `Datos ${dates[0]} → ${dates[dates.length-1]} · ${RAW.length} eventos`;
   }
 
-  yearSel.addEventListener('change', render);
-  monthSel.addEventListener('change', render);
+  yearSel.addEventListener('change', ()=>{ opYearSel.value = yearSel.value; render(); });
+  monthSel.addEventListener('change', ()=>{ opMonthSel.value = monthSel.value; render(); });
+  opYearSel.addEventListener('change', ()=>{ yearSel.value = opYearSel.value; render(); });
+  opMonthSel.addEventListener('change', ()=>{ monthSel.value = opMonthSel.value; render(); });
   render();
 }
 
@@ -494,6 +507,7 @@ function render(){
   renderTypeChart(data);
   renderClientTable(data);
   renderLog(data);
+  renderOpsTable();
 }
 
 function renderTrend(data, yFilter, mFilter){
@@ -666,7 +680,7 @@ document.querySelectorAll('#opsTable th.sortable').forEach(th=>{
 });
 
 function renderOpsTable(){
-  let rows = RAW.filter(r=>{
+  let rows = getFiltered().filter(r=>{
     if(!opsSearch) return true;
     return (r.matricula||'').toLowerCase().includes(opsSearch)
       || (r.cliente||'').toLowerCase().includes(opsSearch)
