@@ -400,6 +400,10 @@
           <button class="active" data-metric="count">Operaciones</button>
           <button data-metric="money">Dinero</button>
         </div>
+        <span style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;font-family:'IBM Plex Mono',monospace;margin-left:10px;">Año</span>
+        <select id="doYearFilter"></select>
+        <span style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;font-family:'IBM Plex Mono',monospace;">Mes</span>
+        <select id="doMonthFilter"></select>
       </div>
     </div>
 
@@ -549,15 +553,24 @@ function init(){
   opYearSel.value = yearSel.value;
   opMonthSel.value = monthSel.value;
 
+  const doYearSel = document.getElementById('doYearFilter');
+  const doMonthSel = document.getElementById('doMonthFilter');
+  doYearSel.innerHTML = yearSel.innerHTML;
+  doMonthSel.innerHTML = monthSel.innerHTML;
+  doYearSel.value = yearSel.value;
+  doMonthSel.value = monthSel.value;
+
   const dates = RAW.map(r=>r.fecha).sort();
   if(dates.length){
     document.getElementById('rangeLabel').textContent = `Datos ${dates[0]} → ${dates[dates.length-1]} · ${RAW.length} eventos`;
   }
 
-  yearSel.addEventListener('change', ()=>{ opYearSel.value = yearSel.value; render(); });
-  monthSel.addEventListener('change', ()=>{ opMonthSel.value = monthSel.value; render(); });
-  opYearSel.addEventListener('change', ()=>{ yearSel.value = opYearSel.value; render(); });
-  opMonthSel.addEventListener('change', ()=>{ monthSel.value = opMonthSel.value; render(); });
+  yearSel.addEventListener('change', ()=>{ opYearSel.value = yearSel.value; doYearSel.value = yearSel.value; render(); });
+  monthSel.addEventListener('change', ()=>{ opMonthSel.value = monthSel.value; doMonthSel.value = monthSel.value; render(); });
+  opYearSel.addEventListener('change', ()=>{ yearSel.value = opYearSel.value; doYearSel.value = opYearSel.value; render(); });
+  opMonthSel.addEventListener('change', ()=>{ monthSel.value = opMonthSel.value; doMonthSel.value = opMonthSel.value; render(); });
+  doYearSel.addEventListener('change', ()=>{ yearSel.value = doYearSel.value; opYearSel.value = doYearSel.value; render(); });
+  doMonthSel.addEventListener('change', ()=>{ monthSel.value = doMonthSel.value; opMonthSel.value = doMonthSel.value; render(); });
   render();
 }
 
@@ -588,6 +601,7 @@ function render(){
   renderClientTable(data);
   renderLog(data);
   renderOpsTable();
+  renderDashboardOp();
 }
 
 function renderTrend(data, yFilter, mFilter){
@@ -1000,7 +1014,7 @@ function renderDashboardOp(){
 
 function renderPieOp(){
   // pie reflects operator breakdown, respecting the month selection (if any) but not the operator selection itself
-  const base = selMonth ? RAW.filter(r=>`${r.year}-${r.month}`===selMonth) : RAW;
+  const base = selMonth ? getFiltered().filter(r=>`${r.year}-${r.month}`===selMonth) : getFiltered();
   const byOp = {};
   base.forEach(r=>{
     byOp[r.cliente] = byOp[r.cliente] || {count:0, money:0};
@@ -1042,7 +1056,7 @@ function renderPieOp(){
 
 function renderBarOp(){
   // bar reflects monthly breakdown, respecting the operator selection (if any) but not the month selection itself
-  const base = selOperator ? RAW.filter(r=>r.cliente===selOperator) : RAW;
+  const base = selOperator ? getFiltered().filter(r=>r.cliente===selOperator) : getFiltered();
   const byMonth = {};
   base.forEach(r=>{
     const key = `${r.year}-${r.month}`;
@@ -1100,7 +1114,7 @@ function renderOpDetailTable(){
     return;
   }
 
-  let rows = RAW;
+  let rows = getFiltered();
   if(selOperator) rows = rows.filter(r=>r.cliente===selOperator);
   if(selMonth) rows = rows.filter(r=>`${r.year}-${r.month}`===selMonth);
   rows = [...rows].sort((a,b)=> b.fecha.localeCompare(a.fecha));
