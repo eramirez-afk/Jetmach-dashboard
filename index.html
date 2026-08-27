@@ -420,6 +420,13 @@
       </div>
     </div>
 
+    <div class="grid" style="grid-template-columns:1fr;">
+      <div class="panel full">
+        <h2>Gastos por categoría <small id="catSub">DNR, DSM, TUA, AIU, S/Terminal, Atenciones, Hrs. Plataforma, DSME, Guardias, Transportación, Catering</small></h2>
+        <div class="chart-box" style="height:280px;"><canvas id="categoryChart"></canvas></div>
+      </div>
+    </div>
+
     <div class="panel full">
       <h2>Detalle de operaciones <small id="opDetailSub">selecciona un operador o mes</small></h2>
       <div class="table-scroll" style="max-height:420px;">
@@ -966,7 +973,21 @@ updateSyncBadge();
 let opMetric = 'count'; // 'count' | 'money'
 let selOperator = null;
 let selMonth = null; // format 'YYYY-M'
-let pieOpChart, barOpChart;
+let pieOpChart, barOpChart, categoryChart;
+
+const CATEGORY_FIELDS = [
+  {key:'costo_dnr', label:'DNR'},
+  {key:'costo_dsm', label:'DSM'},
+  {key:'costo_tua', label:'TUA'},
+  {key:'costo_aiu', label:'AIU'},
+  {key:'costo_sterminal', label:'S/Terminal'},
+  {key:'costo_atenciones', label:'Atenciones'},
+  {key:'costo_hrsplataforma', label:'Hrs. Plataforma'},
+  {key:'costo_dsme', label:'DSME'},
+  {key:'costo_guardias', label:'Guardias'},
+  {key:'costo_transportacion', label:'Transportación'},
+  {key:'costo_catering', label:'Catering'},
+];
 
 document.querySelectorAll('#metricSwitch button').forEach(btn=>{
   btn.addEventListener('click', ()=>{
@@ -1009,7 +1030,49 @@ function renderDashboardOp(){
   renderCrossChips();
   renderPieOp();
   renderBarOp();
+  renderCategoryChart();
   renderOpDetailTable();
+}
+
+function renderCategoryChart(){
+  // respects global year/month filters + the operator/month cross-filter, same scope as the detail table
+  let base = getFiltered();
+  if(selOperator) base = base.filter(r=>r.cliente===selOperator);
+  if(selMonth) base = base.filter(r=>`${r.year}-${r.month}`===selMonth);
+
+  const totals = CATEGORY_FIELDS.map(f=> base.reduce((s,r)=> s + (r[f.key]||0), 0));
+  const entries = CATEGORY_FIELDS.map((f,i)=>({label:f.label, value:totals[i]}))
+    .sort((a,b)=>b.value-a.value);
+
+  const ctx = document.getElementById('categoryChart');
+  if(categoryChart) categoryChart.destroy();
+  categoryChart = new Chart(ctx, {
+    type:'bar',
+    data:{
+      labels: entries.map(e=>e.label),
+      datasets:[{
+        label:'Costo',
+        data: entries.map(e=>e.value),
+        backgroundColor:'rgba(226,114,91,0.55)',
+        borderRadius:3
+      }]
+    },
+    options:{
+      indexAxis:'y',
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{label:(c)=>` ${fmtMoney(c.raw)}`}}
+      },
+      scales:{
+        x:{ticks:{color:'#8B97AC', font:{size:10}, callback:v=>'$'+(v/1000)+'k'}, grid:{color:'rgba(34,48,73,0.4)'}},
+        y:{ticks:{color:'#8B97AC', font:{size:11, family:'IBM Plex Mono'}}, grid:{display:false}}
+      }
+    }
+  });
+
+  const total = totals.reduce((a,b)=>a+b,0);
+  document.getElementById('catSub').textContent = `Total: ${fmtMoney(total)} · ${base.length} operaciones en el filtro actual`;
 }
 
 function renderPieOp(){
