@@ -870,32 +870,26 @@ document.getElementById('btnSaveOp').addEventListener('click', async ()=>{
   const margen = facturado - costo;
   const margen_pct = facturado ? margen/facturado : 0;
   const [y,m] = fecha.split('-');
-  let commitMsg;
+  const fields = { fecha, matricula, tipo_evento, cliente, facturado, costo, margen, margen_pct, year:parseInt(y), month:parseInt(m) };
 
+  let change;
   if(editingId){
-    const idx = RAW.findIndex(x=>x.id===editingId);
-    RAW[idx] = { ...RAW[idx], fecha, matricula, tipo_evento, cliente, facturado, costo, margen, margen_pct, year:parseInt(y), month:parseInt(m) };
-    commitMsg = `Editar operación: ${matricula||cliente} — ${fecha}`;
+    change = { type:'edit', id: editingId, fields, message: `Editar operación: ${matricula||cliente} — ${fecha}` };
   } else {
-    RAW.push({ id: nextOpId(), fecha, matricula, tipo_evento, cliente, facturado, costo, margen, margen_pct, year:parseInt(y), month:parseInt(m) });
-    commitMsg = `Agregar operación: ${matricula||cliente} — ${fecha}`;
+    change = { type:'add', record: { id: nextOpId(), ...fields }, message: `Agregar operación: ${matricula||cliente} — ${fecha}` };
   }
 
-  init();
-  renderOpsTable();
   opModal.classList.remove('open');
-  await syncToGitHub(commitMsg);
+  await applyChangeAndSync(change);
 });
 
 document.getElementById('btnDeleteOp').addEventListener('click', async ()=>{
   if(!editingId) return;
   if(!confirm('¿Eliminar esta operación? Esta acción no se puede deshacer.')) return;
   const r = RAW.find(x=>x.id===editingId);
-  RAW = RAW.filter(x=>x.id!==editingId);
-  init();
-  renderOpsTable();
+  const change = { type:'delete', id: editingId, message: `Eliminar operación: ${r.matricula||r.cliente} — ${r.fecha}` };
   opModal.classList.remove('open');
-  await syncToGitHub(`Eliminar operación: ${r.matricula||r.cliente} — ${r.fecha}`);
+  await applyChangeAndSync(change);
 });
 
 /* ---------------- Settings modal ---------------- */
@@ -933,36 +927,72 @@ function updateSyncBadge(state){
 function utf8ToBase64(str){
   return btoa(unescape(encodeURIComponent(str)));
 }
+function base64ToUtf8(b64){
+  return decodeURIComponent(escape(atob(b64)));
+}
 
-async function syncToGitHub(message){
+function applyChangeToArray(records, change){
+  if(change.type === 'add'){
+    return [...records, change.record];
+  }
+  if(change.type === 'edit'){
+    return records.map(r => r.id===change.id ? { ...r, ...change.fields } : r);
+  }
+  if(change.type === 'delete'){
+    return records.filter(r => r.id !== change.id);
+  }
+  return records;
+}
+
+async function applyChangeAndSync(change){
   const token = localStorage.getItem('jetmach_gh_token');
   const repo = localStorage.getItem('jetmach_repo') || 'eramirez-afk/Jetmach-dashboard';
-  if(!token){ updateSyncBadge(); return false; }
+
+  if(!token){
+    // local-only fallback: apply directly to in-memory RAW, nothing persisted server-side
+    RAW = applyChangeToArray(RAW, change);
+    init(); renderOpsTable(); renderDashboardOp();
+    updateSyncBadge();
+    return false;
+  }
 
   updateSyncBadge('syncing');
   try{
-    // fetch latest sha to avoid conflicts
+    // 1. Read the CURRENT server copy (not what's in browser memory) to avoid clobbering
+    //    changes made elsewhere (another tab, another device, or updated directly via API).
     const getRes = await fetch(`https://api.github.com/repos/${repo}/contents/data.json`, {
       headers:{ 'Authorization':`Bearer ${token}`, 'Accept':'application/vnd.github+json' }
     });
     if(!getRes.ok) throw new Error('No se pudo leer data.json actual (' + getRes.status + ')');
     const getData = await getRes.json();
-    currentSha = getData.sha;
+    const serverRecords = JSON.parse(base64ToUtf8(getData.content));
 
-    const content = utf8ToBase64(JSON.stringify(RAW));
+    // 2. Apply only this one change on top of the server's latest version.
+    const merged = applyChangeToArray(serverRecords, change);
+
+    // 3. Write the merged result back.
+    const content = utf8ToBase64(JSON.stringify(merged));
     const putRes = await fetch(`https://api.github.com/repos/${repo}/contents/data.json`, {
       method:'PUT',
       headers:{ 'Authorization':`Bearer ${token}`, 'Accept':'application/vnd.github+json' },
-      body: JSON.stringify({ message, content, sha: currentSha, branch:'main' })
+      body: JSON.stringify({ message: change.message, content, sha: getData.sha, branch:'main' })
     });
     if(!putRes.ok){
       const errBody = await putRes.json().catch(()=>({}));
       throw new Error(errBody.message || ('HTTP ' + putRes.status));
     }
+
+    // 4. Resync local state to match what's now authoritative on the server.
+    RAW = merged;
+    RAW.forEach((r,i)=>{ if(!r.id) r.id = 'OP-' + String(i+1).padStart(4,'0'); });
+    init(); renderOpsTable(); renderDashboardOp();
     updateSyncBadge('ok');
     return true;
   }catch(e){
     console.error('Sync error:', e);
+    // still apply locally so the person doesn't lose their edit, but flag it as unsynced
+    RAW = applyChangeToArray(RAW, change);
+    init(); renderOpsTable(); renderDashboardOp();
     updateSyncBadge('err');
     return false;
   }
