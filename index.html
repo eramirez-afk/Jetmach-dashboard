@@ -192,7 +192,8 @@
   .modal-overlay.open{display:flex;}
   .modal{
     background:var(--panel);border:1px solid var(--hairline);border-radius:var(--radius);
-    width:100%;max-width:520px;padding:22px 24px 20px;
+    width:100%;max-width:640px;padding:22px 24px 20px;
+    max-height:88vh;overflow-y:auto;
   }
   .modal h3{font-family:'Space Grotesk',sans-serif;font-size:18px;margin:0 0 16px;}
   .field{margin-bottom:12px;}
@@ -485,10 +486,18 @@
         <input type="number" id="fFacturado" step="0.01" placeholder="0.00">
       </div>
       <div class="field">
-        <label>Costo ($)</label>
-        <input type="number" id="fCosto" step="0.01" placeholder="0.00">
+        <label>Costo total (calculado)</label>
+        <input type="text" id="fCostoTotal" value="$0" disabled style="opacity:0.75;">
       </div>
     </div>
+
+    <div class="field" style="margin-top:6px;">
+      <label>Desglose de costos por categoría</label>
+      <div id="categoryFieldsGrid" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;"></div>
+    </div>
+
+    <div class="modal-note" id="margenPreview" style="margin-top:10px;"></div>
+
     <div class="modal-note" id="opModalError" style="color:var(--rose);display:none;"></div>
     <div class="modal-actions">
       <button class="btn ghost" id="btnDeleteOp" style="display:none;color:var(--rose);border-color:var(--rose);margin-right:auto;">Eliminar</button>
@@ -828,24 +837,68 @@ function openOpModal(id){
   document.getElementById('opModalError').style.display='none';
   editingId = id || null;
 
-  if(editingId){
-    const r = RAW.find(x=>x.id===editingId);
+  const r = editingId ? RAW.find(x=>x.id===editingId) : null;
+
+  if(r){
     document.getElementById('opModalTitle').textContent = 'Editar operación';
     document.getElementById('fFecha').value = r.fecha;
     document.getElementById('fMatricula').value = r.matricula || '';
     document.getElementById('fTipo').value = r.tipo_evento || '';
     document.getElementById('fCliente').value = r.cliente || '';
     document.getElementById('fFacturado').value = r.facturado;
-    document.getElementById('fCosto').value = r.costo;
     document.getElementById('btnDeleteOp').style.display = '';
     document.getElementById('btnSaveOp').textContent = 'Guardar cambios';
   } else {
     document.getElementById('opModalTitle').textContent = 'Nueva operación';
-    ['fFecha','fMatricula','fTipo','fCliente','fFacturado','fCosto'].forEach(id=>document.getElementById(id).value='');
+    ['fFecha','fMatricula','fTipo','fCliente','fFacturado'].forEach(id=>document.getElementById(id).value='');
     document.getElementById('btnDeleteOp').style.display = 'none';
     document.getElementById('btnSaveOp').textContent = 'Guardar operación';
   }
+
+  // Build the category breakdown inputs
+  const namedCats = CATEGORY_FIELDS.filter(f=>f.key!=='costo_otros');
+  const otrosField = CATEGORY_FIELDS.find(f=>f.key==='costo_otros');
+  let otrosPrefill = 0;
+  if(r){
+    const knownSum = namedCats.reduce((s,f)=> s + (r[f.key]||0), 0);
+    otrosPrefill = r.costo_otros!==undefined ? r.costo_otros : Math.max(0, Math.round(((r.costo||0) - knownSum)*100)/100);
+  }
+
+  const grid = document.getElementById('categoryFieldsGrid');
+  grid.innerHTML = CATEGORY_FIELDS.map(f=>{
+    const val = r ? (f.key==='costo_otros' ? otrosPrefill : (r[f.key]||0)) : 0;
+    return `
+      <div class="field" style="margin-bottom:0;">
+        <label style="font-size:10px;">${f.label}</label>
+        <input type="number" class="cat-input" data-key="${f.key}" step="0.01" value="${val}">
+      </div>`;
+  }).join('');
+
+  grid.querySelectorAll('.cat-input').forEach(inp=>{
+    inp.addEventListener('input', updateModalTotals);
+  });
+  document.getElementById('fFacturado').addEventListener('input', updateModalTotals);
+
+  updateModalTotals();
   opModal.classList.add('open');
+}
+
+function getCategoryValuesFromForm(){
+  const vals = {};
+  document.querySelectorAll('#categoryFieldsGrid .cat-input').forEach(inp=>{
+    vals[inp.dataset.key] = parseFloat(inp.value) || 0;
+  });
+  return vals;
+}
+
+function updateModalTotals(){
+  const cats = getCategoryValuesFromForm();
+  const totalCosto = Object.values(cats).reduce((a,b)=>a+b, 0);
+  const facturado = parseFloat(document.getElementById('fFacturado').value) || 0;
+  const margen = facturado - totalCosto;
+  const margenPct = facturado ? margen/facturado : 0;
+  document.getElementById('fCostoTotal').value = fmtMoney(totalCosto);
+  document.getElementById('margenPreview').textContent = `Margen estimado: ${fmtMoney(margen)} (${fmtPct(margenPct)})`;
 }
 
 document.getElementById('btnAddOp').addEventListener('click', ()=>openOpModal(null));
@@ -858,7 +911,8 @@ document.getElementById('btnSaveOp').addEventListener('click', async ()=>{
   const tipo_evento = document.getElementById('fTipo').value.trim();
   const cliente = document.getElementById('fCliente').value.trim();
   const facturado = parseFloat(document.getElementById('fFacturado').value) || 0;
-  const costo = parseFloat(document.getElementById('fCosto').value) || 0;
+  const cats = getCategoryValuesFromForm();
+  const costo = Object.values(cats).reduce((a,b)=>a+b, 0);
 
   const errBox = document.getElementById('opModalError');
   if(!fecha || !cliente || !tipo_evento){
@@ -870,7 +924,7 @@ document.getElementById('btnSaveOp').addEventListener('click', async ()=>{
   const margen = facturado - costo;
   const margen_pct = facturado ? margen/facturado : 0;
   const [y,m] = fecha.split('-');
-  const fields = { fecha, matricula, tipo_evento, cliente, facturado, costo, margen, margen_pct, year:parseInt(y), month:parseInt(m) };
+  const fields = { fecha, matricula, tipo_evento, cliente, facturado, costo, margen, margen_pct, year:parseInt(y), month:parseInt(m), ...cats };
 
   let change;
   if(editingId){
@@ -1017,6 +1071,7 @@ const CATEGORY_FIELDS = [
   {key:'costo_guardias', label:'Guardias'},
   {key:'costo_transportacion', label:'Transportación'},
   {key:'costo_catering', label:'Catering'},
+  {key:'costo_otros', label:'Otros / Sin clasificar'},
 ];
 
 document.querySelectorAll('#metricSwitch button').forEach(btn=>{
