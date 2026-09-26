@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   :root{
     --bg: #080C14;
@@ -273,6 +274,7 @@
     <button class="tab-btn active" data-tab="resumen">Resumen</button>
     <button class="tab-btn" data-tab="operaciones">Operaciones</button>
     <button class="tab-btn" data-tab="dashboard-op">Dashboard Operacional</button>
+    <button class="tab-btn" data-tab="reportes">Reportes</button>
   </nav>
 
   <section id="view-resumen">
@@ -451,6 +453,60 @@
     </div>
   </section>
 
+  <section id="view-reportes" style="display:none;">
+    <div class="panel" style="margin-bottom:16px;">
+      <h2>Reporte de un periodo <small>descarga el detalle y el resumen en Excel</small></h2>
+      <div class="toolbar" style="margin-bottom:0;">
+        <div class="toolbar-left">
+          <span style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;font-family:'IBM Plex Mono',monospace;">Año</span>
+          <select id="repYear"></select>
+          <span style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;font-family:'IBM Plex Mono',monospace;">Mes</span>
+          <select id="repMonth"></select>
+        </div>
+        <button class="btn primary" id="btnDownloadReport">⬇ Descargar Excel</button>
+      </div>
+      <div class="modal-note" id="repPreview" style="margin-top:12px;"></div>
+    </div>
+
+    <div class="panel full">
+      <h2>Comparativo entre periodos <small>compara dos meses, dos años, o cualquier combinación</small></h2>
+      <div class="grid" style="grid-template-columns:1fr 1fr;margin-bottom:14px;">
+        <div>
+          <div style="font-size:11px;color:var(--gold);text-transform:uppercase;letter-spacing:.08em;font-family:'IBM Plex Mono',monospace;margin-bottom:8px;">Periodo A</div>
+          <div class="toolbar-left" style="margin-bottom:0;">
+            <select id="cmpYearA"></select>
+            <select id="cmpMonthA"></select>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--teal);text-transform:uppercase;letter-spacing:.08em;font-family:'IBM Plex Mono',monospace;margin-bottom:8px;">Periodo B</div>
+          <div class="toolbar-left" style="margin-bottom:0;">
+            <select id="cmpYearB"></select>
+            <select id="cmpMonthB"></select>
+          </div>
+        </div>
+      </div>
+
+      <div class="table-scroll">
+        <table id="cmpTable">
+          <thead>
+            <tr>
+              <th>Métrica</th>
+              <th class="num" id="cmpHeadA">Periodo A</th>
+              <th class="num" id="cmpHeadB">Periodo B</th>
+              <th class="num">Variación</th>
+            </tr>
+          </thead>
+          <tbody id="cmpTbody"></tbody>
+        </table>
+      </div>
+
+      <div style="margin-top:16px;">
+        <button class="btn primary" id="btnDownloadComparative">⬇ Descargar comparativo Excel</button>
+      </div>
+    </div>
+  </section>
+
   <footer>Handling · MMAN / MMMY — dashboard generado desde Costos_de_Handling_JETMACH · actualiza data.json para refrescar</footer>
 </div>
 
@@ -587,6 +643,7 @@ function init(){
   opMonthSel.addEventListener('change', ()=>{ monthSel.value = opMonthSel.value; doMonthSel.value = opMonthSel.value; render(); });
   doYearSel.addEventListener('change', ()=>{ yearSel.value = doYearSel.value; opYearSel.value = doYearSel.value; render(); });
   doMonthSel.addEventListener('change', ()=>{ monthSel.value = doMonthSel.value; opMonthSel.value = doMonthSel.value; render(); });
+  populateReportFilters();
   render();
 }
 
@@ -760,8 +817,10 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
     document.getElementById('view-resumen').style.display = tab==='resumen' ? '' : 'none';
     document.getElementById('view-operaciones').style.display = tab==='operaciones' ? '' : 'none';
     document.getElementById('view-dashboard-op').style.display = tab==='dashboard-op' ? '' : 'none';
+    document.getElementById('view-reportes').style.display = tab==='reportes' ? '' : 'none';
     if(tab==='operaciones') renderOpsTable();
     if(tab==='dashboard-op') renderDashboardOp();
+    if(tab==='reportes') renderComparativeTable();
   });
 });
 
@@ -1284,6 +1343,173 @@ function renderOpDetailTable(){
     </tr>
   `).join('');
 }
+
+/* ---------------- Reportes ---------------- */
+function periodLabel(year, month){
+  if(year==='all' && month==='all') return 'Todos los periodos';
+  if(month==='all') return `Año ${year}`;
+  return `${MESES[+month]} ${year}`;
+}
+
+function getPeriodData(year, month){
+  return RAW.filter(r => (year==='all' || r.year==+year) && (month==='all' || r.month==+month));
+}
+
+function buildSummary(data){
+  const facturado = data.reduce((s,r)=>s+r.facturado,0);
+  const costo = data.reduce((s,r)=>s+r.costo,0);
+  const margen = facturado - costo;
+  const margenPct = facturado ? margen/facturado : 0;
+  const catTotals = {};
+  CATEGORY_FIELDS.forEach(f=>{ catTotals[f.label] = data.reduce((s,r)=>s+(r[f.key]||0),0); });
+  return { eventos:data.length, facturado, costo, margen, margenPct, catTotals };
+}
+
+function populateReportFilters(){
+  const years = [...new Set(RAW.map(r=>r.year))].sort();
+  const yearOpts = '<option value="all">Todos</option>' + years.map(y=>`<option value="${y}">${y}</option>`).join('');
+  const monthOpts = '<option value="all">Todos</option>' + Array.from({length:12},(_,i)=>i+1).map(m=>`<option value="${m}">${MESES[m]}</option>`).join('');
+
+  ['repYear','cmpYearA','cmpYearB'].forEach(id=>{ document.getElementById(id).innerHTML = yearOpts; });
+  ['repMonth','cmpMonthA','cmpMonthB'].forEach(id=>{ document.getElementById(id).innerHTML = monthOpts; });
+
+  // sensible defaults: report = most recent month with data; comparative = last two months with data
+  const keys = [...new Set(RAW.map(r=>`${r.year}-${r.month}`))].sort();
+  if(keys.length){
+    const [ly, lm] = keys[keys.length-1].split('-');
+    document.getElementById('repYear').value = ly;
+    document.getElementById('repMonth').value = lm;
+    document.getElementById('cmpYearB').value = ly;
+    document.getElementById('cmpMonthB').value = lm;
+    if(keys.length>1){
+      const [py, pm] = keys[keys.length-2].split('-');
+      document.getElementById('cmpYearA').value = py;
+      document.getElementById('cmpMonthA').value = pm;
+    }
+  }
+  updateReportPreview();
+}
+
+function updateReportPreview(){
+  const year = document.getElementById('repYear').value;
+  const month = document.getElementById('repMonth').value;
+  const data = getPeriodData(year, month);
+  const s = buildSummary(data);
+  document.getElementById('repPreview').innerHTML =
+    `<strong>${periodLabel(year,month)}:</strong> ${s.eventos} operaciones · Facturado ${fmtMoney(s.facturado)} · Costo ${fmtMoney(s.costo)} · Margen ${fmtMoney(s.margen)} (${fmtPct(s.margenPct)})`;
+}
+
+['repYear','repMonth'].forEach(id=>{
+  document.getElementById(id).addEventListener('change', updateReportPreview);
+});
+['cmpYearA','cmpMonthA','cmpYearB','cmpMonthB'].forEach(id=>{
+  document.getElementById(id).addEventListener('change', renderComparativeTable);
+});
+
+function fmtDelta(a, b, isPct){
+  const d = b - a;
+  const sign = d>0 ? '+' : '';
+  return isPct ? `${sign}${(d*100).toFixed(1)} pts` : `${sign}${fmtMoney(d)}`;
+}
+
+function renderComparativeTable(){
+  const yA = document.getElementById('cmpYearA').value, mA = document.getElementById('cmpMonthA').value;
+  const yB = document.getElementById('cmpYearB').value, mB = document.getElementById('cmpMonthB').value;
+  const dataA = getPeriodData(yA, mA), dataB = getPeriodData(yB, mB);
+  const sA = buildSummary(dataA), sB = buildSummary(dataB);
+
+  document.getElementById('cmpHeadA').textContent = periodLabel(yA, mA);
+  document.getElementById('cmpHeadB').textContent = periodLabel(yB, mB);
+
+  const rows = [
+    ['Eventos', sA.eventos, sB.eventos, (sB.eventos-sA.eventos)],
+    ['Facturado', fmtMoney(sA.facturado), fmtMoney(sB.facturado), fmtDelta(sA.facturado, sB.facturado)],
+    ['Costo', fmtMoney(sA.costo), fmtMoney(sB.costo), fmtDelta(sA.costo, sB.costo)],
+    ['Margen', fmtMoney(sA.margen), fmtMoney(sB.margen), fmtDelta(sA.margen, sB.margen)],
+    ['Margen %', fmtPct(sA.margenPct), fmtPct(sB.margenPct), fmtDelta(sA.margenPct, sB.margenPct, true)],
+  ];
+  CATEGORY_FIELDS.forEach(f=>{
+    rows.push([f.label, fmtMoney(sA.catTotals[f.label]), fmtMoney(sB.catTotals[f.label]), fmtDelta(sA.catTotals[f.label], sB.catTotals[f.label])]);
+  });
+
+  document.getElementById('cmpTbody').innerHTML = rows.map(r=>`
+    <tr>
+      <td>${r[0]}</td>
+      <td class="num">${r[1]}</td>
+      <td class="num">${r[2]}</td>
+      <td class="num">${r[3]}</td>
+    </tr>
+  `).join('');
+}
+
+function opsForSheet(data){
+  return data.map(r=>{
+    const row = {
+      Fecha:r.fecha, Matrícula:r.matricula||'', Tipo:r.tipo_evento, Cliente:r.cliente,
+      Facturado:r.facturado, Costo:r.costo, Margen:r.margen, 'Margen %': +(r.margen_pct*100).toFixed(1)
+    };
+    CATEGORY_FIELDS.forEach(f=>{ row[f.label] = r[f.key]||0; });
+    return row;
+  });
+}
+
+function summarySheetRows(label, s){
+  return [
+    ['Periodo', label],
+    ['Eventos', s.eventos],
+    ['Facturado', s.facturado],
+    ['Costo', s.costo],
+    ['Margen', s.margen],
+    ['Margen %', +(s.margenPct*100).toFixed(1)],
+    [],
+    ['Categoría', 'Costo'],
+    ...CATEGORY_FIELDS.map(f=>[f.label, s.catTotals[f.label]])
+  ];
+}
+
+document.getElementById('btnDownloadReport').addEventListener('click', ()=>{
+  const year = document.getElementById('repYear').value;
+  const month = document.getElementById('repMonth').value;
+  const data = getPeriodData(year, month);
+  if(!data.length){ alert('No hay operaciones en el periodo seleccionado.'); return; }
+
+  const label = periodLabel(year, month);
+  const s = buildSummary(data);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(opsForSheet([...data].sort((a,b)=>a.fecha.localeCompare(b.fecha)))), 'Operaciones');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(summarySheetRows(label, s)), 'Resumen');
+
+  XLSX.writeFile(wb, `JetMach_Reporte_${label.replace(/\s+/g,'_')}.xlsx`);
+});
+
+document.getElementById('btnDownloadComparative').addEventListener('click', ()=>{
+  const yA = document.getElementById('cmpYearA').value, mA = document.getElementById('cmpMonthA').value;
+  const yB = document.getElementById('cmpYearB').value, mB = document.getElementById('cmpMonthB').value;
+  const dataA = getPeriodData(yA, mA), dataB = getPeriodData(yB, mB);
+  if(!dataA.length && !dataB.length){ alert('No hay operaciones en los periodos seleccionados.'); return; }
+
+  const labelA = periodLabel(yA, mA), labelB = periodLabel(yB, mB);
+  const sA = buildSummary(dataA), sB = buildSummary(dataB);
+
+  const wb = XLSX.utils.book_new();
+
+  const cmpRows = [
+    ['Métrica', labelA, labelB, 'Variación'],
+    ['Eventos', sA.eventos, sB.eventos, sB.eventos - sA.eventos],
+    ['Facturado', sA.facturado, sB.facturado, sB.facturado - sA.facturado],
+    ['Costo', sA.costo, sB.costo, sB.costo - sA.costo],
+    ['Margen', sA.margen, sB.margen, sB.margen - sA.margen],
+    ['Margen %', +(sA.margenPct*100).toFixed(1), +(sB.margenPct*100).toFixed(1), +((sB.margenPct-sA.margenPct)*100).toFixed(1)],
+    [],
+    ['Categoría', labelA, labelB, 'Variación'],
+    ...CATEGORY_FIELDS.map(f=>[f.label, sA.catTotals[f.label], sB.catTotals[f.label], sB.catTotals[f.label]-sA.catTotals[f.label]])
+  ];
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(cmpRows), 'Comparativo');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(opsForSheet([...dataA].sort((a,b)=>a.fecha.localeCompare(b.fecha)))), ('Detalle '+labelA).slice(0,31));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(opsForSheet([...dataB].sort((a,b)=>a.fecha.localeCompare(b.fecha)))), ('Detalle '+labelB).slice(0,31));
+
+  XLSX.writeFile(wb, `JetMach_Comparativo_${labelA.replace(/\s+/g,'_')}_vs_${labelB.replace(/\s+/g,'_')}.xlsx`);
+});
 
 loadData();
 </script>
