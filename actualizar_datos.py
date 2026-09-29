@@ -16,6 +16,7 @@ def main(path):
 
     cols = {
         'FECHA': 'fecha',
+        'COTIZACIÓN\nNo.': 'folio',
         'MATRÍCULA': 'matricula',
         'TIPO DE EVENTO': 'tipo_evento',
         'CLIENTE': 'cliente',
@@ -37,6 +38,7 @@ def main(path):
     df2['margen_pct'] = pd.to_numeric(df2['margen_pct'], errors='coerce').fillna(0)
     df2['tipo_evento'] = df2['tipo_evento'].fillna('SIN CLASIFICAR')
     df2['cliente'] = df2['cliente'].fillna('SIN CLIENTE')
+    df2['folio'] = df2['folio'].apply(lambda v: '' if pd.isna(v) else (str(int(v)) if isinstance(v, (int, float)) else str(v).strip()))
 
     records = df2.to_dict(orient='records')
     with open('data.json', 'w', encoding='utf-8') as f:

@@ -350,6 +350,7 @@
         <thead>
           <tr>
             <th>Fecha</th>
+            <th>Folio</th>
             <th>Matrícula</th>
             <th>Tipo</th>
             <th>Cliente</th>
@@ -369,7 +370,7 @@
   <section id="view-operaciones" style="display:none;">
     <div class="toolbar">
       <div class="toolbar-left">
-        <input type="text" class="search-input" id="opSearch" placeholder="Buscar por matrícula, cliente, tipo…">
+        <input type="text" class="search-input" id="opSearch" placeholder="Buscar por folio, matrícula, cliente, tipo…">
         <label style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;font-family:'IBM Plex Mono',monospace;">Año</label>
         <select id="opYearFilter"></select>
         <label style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;font-family:'IBM Plex Mono',monospace;">Mes</label>
@@ -388,6 +389,7 @@
           <thead>
             <tr>
               <th class="sortable" data-key="fecha">Fecha <span class="arrow">↕</span></th>
+              <th class="sortable" data-key="folio">Folio <span class="arrow">↕</span></th>
               <th class="sortable" data-key="matricula">Matrícula <span class="arrow">↕</span></th>
               <th class="sortable" data-key="tipo_evento">Tipo <span class="arrow">↕</span></th>
               <th class="sortable" data-key="cliente">Cliente <span class="arrow">↕</span></th>
@@ -445,6 +447,7 @@
           <thead>
             <tr>
               <th>Fecha</th>
+            <th>Folio</th>
               <th>Matrícula</th>
               <th>Tipo</th>
               <th>Cliente</th>
@@ -577,6 +580,12 @@
     </div>
     <div class="field-row">
       <div class="field">
+        <label>Folio (cotización / orden de trabajo)</label>
+        <input type="text" id="fFolio" placeholder="Ej. 2436">
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
         <label>Tipo de evento</label>
         <input type="text" id="fTipo" list="tipoList" placeholder="TRÁNSITO, HANGAR…">
         <datalist id="tipoList"></datalist>
@@ -644,6 +653,7 @@
 const MESES = ['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 const fmtMoney = n => '$' + Math.round(n).toLocaleString('es-MX');
 const fmtPct = n => (n*100).toFixed(1) + '%';
+const esc = s => String(s==null?'':s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
 let RAW = [];
 let trendChart, typeChart;
@@ -848,6 +858,7 @@ function renderLog(data){
   tbody.innerHTML = sorted.slice(0,150).map(r=>`
     <tr>
       <td>${r.fecha}</td>
+      <td>${esc(r.folio)}</td>
       <td>${r.matricula||''}</td>
       <td>${r.tipo_evento}</td>
       <td>${r.cliente}</td>
@@ -907,7 +918,8 @@ function renderOpsTable(){
     return (r.matricula||'').toLowerCase().includes(opsSearch)
       || (r.cliente||'').toLowerCase().includes(opsSearch)
       || (r.tipo_evento||'').toLowerCase().includes(opsSearch)
-      || (r.fecha||'').includes(opsSearch);
+      || (r.fecha||'').includes(opsSearch)
+      || (r.folio||'').toLowerCase().includes(opsSearch);
   });
   const {key, dir} = opsSort;
   rows = [...rows].sort((a,b)=>{
@@ -920,6 +932,7 @@ function renderOpsTable(){
   document.getElementById('opsTbody').innerHTML = rows.map(r=>`
     <tr class="editable-row" data-id="${r.id}" style="cursor:pointer;">
       <td>${r.fecha}</td>
+      <td>${esc(r.folio)}</td>
       <td>${r.matricula||''}</td>
       <td>${r.tipo_evento}</td>
       <td>${r.cliente}</td>
@@ -953,6 +966,7 @@ function openOpModal(id){
     document.getElementById('opModalTitle').textContent = 'Editar operación';
     document.getElementById('fFecha').value = r.fecha;
     document.getElementById('fMatricula').value = r.matricula || '';
+    document.getElementById('fFolio').value = r.folio || '';
     document.getElementById('fTipo').value = r.tipo_evento || '';
     document.getElementById('fCliente').value = r.cliente || '';
     document.getElementById('fFacturado').value = r.facturado;
@@ -960,7 +974,7 @@ function openOpModal(id){
     document.getElementById('btnSaveOp').textContent = 'Guardar cambios';
   } else {
     document.getElementById('opModalTitle').textContent = 'Nueva operación';
-    ['fFecha','fMatricula','fTipo','fCliente','fFacturado'].forEach(id=>document.getElementById(id).value='');
+    ['fFecha','fMatricula','fFolio','fTipo','fCliente','fFacturado'].forEach(id=>document.getElementById(id).value='');
     document.getElementById('btnDeleteOp').style.display = 'none';
     document.getElementById('btnSaveOp').textContent = 'Guardar operación';
   }
@@ -1018,6 +1032,7 @@ opModal.addEventListener('click', e=>{ if(e.target===opModal) opModal.classList.
 document.getElementById('btnSaveOp').addEventListener('click', async ()=>{
   const fecha = document.getElementById('fFecha').value;
   const matricula = document.getElementById('fMatricula').value.trim();
+  const folio = document.getElementById('fFolio').value.trim();
   const tipo_evento = document.getElementById('fTipo').value.trim();
   const cliente = document.getElementById('fCliente').value.trim();
   const facturado = parseFloat(document.getElementById('fFacturado').value) || 0;
@@ -1034,7 +1049,7 @@ document.getElementById('btnSaveOp').addEventListener('click', async ()=>{
   const margen = facturado - costo;
   const margen_pct = facturado ? margen/facturado : 0;
   const [y,m] = fecha.split('-');
-  const fields = { fecha, matricula, tipo_evento, cliente, facturado, costo, margen, margen_pct, year:parseInt(y), month:parseInt(m), ...cats };
+  const fields = { fecha, folio, matricula, tipo_evento, cliente, facturado, costo, margen, margen_pct, year:parseInt(y), month:parseInt(m), ...cats };
 
   let change;
   if(editingId){
@@ -1401,6 +1416,7 @@ function renderOpDetailTable(){
   tbody.innerHTML = rows.map(r=>`
     <tr class="detail-row ${r.id===selectedOpId ? 'detail-row-selected' : ''}" data-id="${r.id}" style="cursor:pointer;">
       <td>${r.fecha}</td>
+      <td>${esc(r.folio)}</td>
       <td>${r.matricula||''}</td>
       <td>${r.tipo_evento}</td>
       <td>${r.cliente}</td>
@@ -1823,6 +1839,7 @@ function addOpsSheet(wb, name, data){
   const ws = wb.addWorksheet(name.slice(0,31), { views:[{state:'frozen', ySplit:1, showGridLines:false}] });
   ws.columns = [
     {header:'Fecha', key:'fecha', width:12},
+    {header:'Folio', key:'folio', width:12},
     {header:'Matrícula', key:'matricula', width:12},
     {header:'Tipo', key:'tipo', width:14},
     {header:'Cliente', key:'cliente', width:14},
@@ -1839,7 +1856,7 @@ function addOpsSheet(wb, name, data){
   });
   [...data].sort((a,b)=>a.fecha.localeCompare(b.fecha)).forEach((r,i)=>{
     const row = ws.addRow({
-      fecha:r.fecha, matricula:r.matricula||'', tipo:r.tipo_evento, cliente:r.cliente,
+      fecha:r.fecha, folio:r.folio||'', matricula:r.matricula||'', tipo:r.tipo_evento, cliente:r.cliente,
       facturado:r.facturado, costo:r.costo, margen:r.margen, margen_pct:r.margen_pct,
       ...Object.fromEntries(CATEGORY_FIELDS.map(f=>[f.key, r[f.key]||0]))
     });
