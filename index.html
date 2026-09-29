@@ -239,6 +239,9 @@
   .flabel{font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;font-family:'IBM Plex Mono',monospace;}
   .cmp-tag{font-size:11px;text-transform:uppercase;letter-spacing:.08em;font-family:'IBM Plex Mono',monospace;margin-bottom:8px;}
   .num-pos{color:#4ADE80;}
+  .detail-row:hover{background:rgba(217,164,65,0.06);}
+  .detail-row-selected{background:rgba(217,164,65,0.14) !important;}
+  .detail-row-selected td:first-child{box-shadow: inset 3px 0 0 var(--gold);}
   .num-neg{color:#F87171;}
   .cmp-row-strong td{font-weight:600;}
   .empty-state{
@@ -1164,6 +1167,7 @@ updateSyncBadge();
 let opMetric = 'count'; // 'count' | 'money'
 let selOperator = null;
 let selMonth = null; // format 'YYYY-M'
+let selectedOpId = null; // when set, the category chart shows a single operation's breakdown
 let pieOpChart, barOpChart, categoryChart;
 
 const CATEGORY_FIELDS = [
@@ -1213,12 +1217,14 @@ function renderCrossChips(){
     b.addEventListener('click', ()=>{
       if(b.dataset.clear==='operator') selOperator = null;
       if(b.dataset.clear==='month') selMonth = null;
+      selectedOpId = null;
       renderDashboardOp();
     });
   });
 }
 
 function renderDashboardOp(){
+  selectedOpId = null;
   renderCrossChips();
   renderPieOp();
   renderBarOp();
@@ -1227,14 +1233,27 @@ function renderDashboardOp(){
 }
 
 function renderCategoryChart(){
-  // respects global year/month filters + the operator/month cross-filter, same scope as the detail table
-  let base = getFiltered();
-  if(selOperator) base = base.filter(r=>r.cliente===selOperator);
-  if(selMonth) base = base.filter(r=>`${r.year}-${r.month}`===selMonth);
+  let entries, subtitle;
 
-  const totals = CATEGORY_FIELDS.map(f=> base.reduce((s,r)=> s + (r[f.key]||0), 0));
-  const entries = CATEGORY_FIELDS.map((f,i)=>({label:f.label, value:totals[i]}))
-    .sort((a,b)=>b.value-a.value);
+  if(selectedOpId){
+    const r = RAW.find(x=>x.id===selectedOpId);
+    if(r){
+      entries = CATEGORY_FIELDS.map(f=>({label:f.label, value:r[f.key]||0})).sort((a,b)=>b.value-a.value);
+      subtitle = `Detalle de ${r.fecha} · ${r.matricula||'s/matrícula'} · ${r.cliente} — Costo total ${fmtMoney(r.costo)}`;
+    }
+  }
+
+  if(!entries){
+    // respects global year/month filters + the operator/month cross-filter, same scope as the detail table
+    let base = getFiltered();
+    if(selOperator) base = base.filter(r=>r.cliente===selOperator);
+    if(selMonth) base = base.filter(r=>`${r.year}-${r.month}`===selMonth);
+
+    const totals = CATEGORY_FIELDS.map(f=> base.reduce((s,r)=> s + (r[f.key]||0), 0));
+    entries = CATEGORY_FIELDS.map((f,i)=>({label:f.label, value:totals[i]})).sort((a,b)=>b.value-a.value);
+    const total = totals.reduce((a,b)=>a+b,0);
+    subtitle = `Total: ${fmtMoney(total)} · ${base.length} operaciones en el filtro actual`;
+  }
 
   const ctx = document.getElementById('categoryChart');
   if(categoryChart) categoryChart.destroy();
@@ -1245,7 +1264,7 @@ function renderCategoryChart(){
       datasets:[{
         label:'Costo',
         data: entries.map(e=>e.value),
-        backgroundColor:'rgba(226,114,91,0.55)',
+        backgroundColor: selectedOpId ? 'rgba(217,164,65,0.7)' : 'rgba(226,114,91,0.55)',
         borderRadius:3
       }]
     },
@@ -1263,8 +1282,7 @@ function renderCategoryChart(){
     }
   });
 
-  const total = totals.reduce((a,b)=>a+b,0);
-  document.getElementById('catSub').textContent = `Total: ${fmtMoney(total)} · ${base.length} operaciones en el filtro actual`;
+  document.getElementById('catSub').textContent = subtitle;
 }
 
 function renderPieOp(){
@@ -1299,6 +1317,7 @@ function renderPieOp(){
         if(!pts.length) return;
         const label = entries[pts[0].index][0];
         selOperator = (selOperator===label) ? null : label;
+        selectedOpId = null;
         renderDashboardOp();
       },
       plugins:{
@@ -1342,6 +1361,7 @@ function renderBarOp(){
         if(!pts.length) return;
         const key = keys[pts[0].index];
         selMonth = (selMonth===key) ? null : key;
+        selectedOpId = null;
         renderDashboardOp();
       },
       plugins:{
@@ -1376,10 +1396,10 @@ function renderOpDetailTable(){
 
   table.style.display = '';
   empty.style.display = 'none';
-  sub.textContent = `${rows.length} operaciones`;
+  sub.textContent = `${rows.length} operaciones · clic en una fila para ver su detalle de gastos arriba`;
 
   tbody.innerHTML = rows.map(r=>`
-    <tr>
+    <tr class="detail-row ${r.id===selectedOpId ? 'detail-row-selected' : ''}" data-id="${r.id}" style="cursor:pointer;">
       <td>${r.fecha}</td>
       <td>${r.matricula||''}</td>
       <td>${r.tipo_evento}</td>
@@ -1390,6 +1410,15 @@ function renderOpDetailTable(){
       <td class="num"><span class="pill ${r.margen_pct<0?'neg':''}">${fmtPct(r.margen_pct)}</span></td>
     </tr>
   `).join('');
+
+  tbody.querySelectorAll('tr.detail-row').forEach(tr=>{
+    tr.addEventListener('click', ()=>{
+      const id = tr.dataset.id;
+      selectedOpId = (selectedOpId===id) ? null : id;
+      renderCategoryChart();
+      renderOpDetailTable();
+    });
+  });
 }
 
 /* ---------------- Reportes ---------------- */
