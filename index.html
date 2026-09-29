@@ -275,6 +275,10 @@
         <label>Mes</label>
         <select id="monthFilter"></select>
       </div>
+      <div>
+        <label>Servicio</label>
+        <select id="typeFilter"></select>
+      </div>
     </div>
   </header>
 
@@ -375,6 +379,8 @@
         <select id="opYearFilter"></select>
         <label style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;font-family:'IBM Plex Mono',monospace;">Mes</label>
         <select id="opMonthFilter"></select>
+        <label style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;font-family:'IBM Plex Mono',monospace;">Servicio</label>
+        <select id="opTypeFilter"></select>
         <span class="sync-badge" id="syncBadge">local</span>
       </div>
       <div style="display:flex;gap:8px;">
@@ -417,6 +423,8 @@
         <select id="doYearFilter"></select>
         <span style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;font-family:'IBM Plex Mono',monospace;">Mes</span>
         <select id="doMonthFilter"></select>
+        <span style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;font-family:'IBM Plex Mono',monospace;">Servicio</span>
+        <select id="doTypeFilter"></select>
       </div>
     </div>
 
@@ -475,6 +483,8 @@
           <select id="repMonth"></select>
           <span class="flabel">Cliente</span>
           <select id="repClient"></select>
+          <span class="flabel">Servicio</span>
+          <select id="repType"></select>
         </div>
         <button class="btn primary" id="btnDownloadReport">⬇ Descargar Excel</button>
       </div>
@@ -499,9 +509,10 @@
           </div>
         </div>
         <div>
-          <div class="cmp-tag" style="color:var(--text-dim);">Cliente (aplica a ambos)</div>
+          <div class="cmp-tag" style="color:var(--text-dim);">Cliente y servicio (aplica a ambos)</div>
           <div class="toolbar-left" style="margin-bottom:0;">
             <select id="cmpClient"></select>
+            <select id="cmpType"></select>
           </div>
         </div>
       </div>
@@ -693,6 +704,17 @@ function init(){
   doYearSel.value = yearSel.value;
   doMonthSel.value = monthSel.value;
 
+  const types = [...new Set(RAW.map(r=>r.tipo_evento).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es'));
+  const typeSel = document.getElementById('typeFilter');
+  const opTypeSel = document.getElementById('opTypeFilter');
+  const doTypeSel = document.getElementById('doTypeFilter');
+  typeSel.innerHTML = '<option value="all">Todos</option>' + types.map(t=>`<option value="${esc(t)}">${esc(t)}</option>`).join('');
+  opTypeSel.innerHTML = typeSel.innerHTML;
+  doTypeSel.innerHTML = typeSel.innerHTML;
+  typeSel.addEventListener('change', ()=>{ opTypeSel.value = typeSel.value; doTypeSel.value = typeSel.value; render(); });
+  opTypeSel.addEventListener('change', ()=>{ typeSel.value = opTypeSel.value; doTypeSel.value = opTypeSel.value; render(); });
+  doTypeSel.addEventListener('change', ()=>{ typeSel.value = doTypeSel.value; opTypeSel.value = doTypeSel.value; render(); });
+
   const dates = RAW.map(r=>r.fecha).sort();
   if(dates.length){
     document.getElementById('rangeLabel').textContent = `Datos ${dates[0]} → ${dates[dates.length-1]} · ${RAW.length} eventos`;
@@ -711,7 +733,8 @@ function init(){
 function getFiltered(){
   const y = document.getElementById('yearFilter').value;
   const m = document.getElementById('monthFilter').value;
-  return RAW.filter(r => (y==='all' || r.year==+y) && (m==='all' || r.month==+m));
+  const t = document.getElementById('typeFilter').value;
+  return RAW.filter(r => (y==='all' || r.year==+y) && (m==='all' || r.month==+m) && (t==='all' || r.tipo_evento===t));
 }
 
 function render(){
@@ -1444,11 +1467,12 @@ function periodLabel(year, month){
   return `${MESES[+month]} ${year}`;
 }
 
-function getPeriodData(year, month, client){
+function getPeriodData(year, month, client, type){
   return RAW.filter(r =>
     (year==='all' || r.year==+year) &&
     (month==='all' || r.month==+month) &&
-    (!client || client==='all' || r.cliente===client)
+    (!client || client==='all' || r.cliente===client) &&
+    (!type || type==='all' || r.tipo_evento===type)
   );
 }
 
@@ -1472,6 +1496,9 @@ function populateReportFilters(){
   ['repYear','cmpYearA','cmpYearB'].forEach(id=>{ document.getElementById(id).innerHTML = yearOpts; });
   ['repMonth','cmpMonthA','cmpMonthB'].forEach(id=>{ document.getElementById(id).innerHTML = monthOpts; });
   ['repClient','cmpClient'].forEach(id=>{ document.getElementById(id).innerHTML = clientOpts; });
+  const typesR = [...new Set(RAW.map(r=>r.tipo_evento).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es'));
+  const typeOpts = '<option value="all">Todos</option>' + typesR.map(t=>`<option value="${esc(t)}">${esc(t)}</option>`).join('');
+  ['repType','cmpType'].forEach(id=>{ document.getElementById(id).innerHTML = typeOpts; });
 
   // sensible defaults: report = most recent month with data; comparative = last two months with data
   const keys = [...new Set(RAW.map(r=>`${r.year}-${r.month}`))].sort();
@@ -1494,17 +1521,18 @@ function updateReportPreview(){
   const year = document.getElementById('repYear').value;
   const month = document.getElementById('repMonth').value;
   const client = document.getElementById('repClient').value;
-  const data = getPeriodData(year, month, client);
+  const type = document.getElementById('repType').value;
+  const data = getPeriodData(year, month, client, type);
   const s = buildSummary(data);
-  const clientTxt = (client && client!=='all') ? ` · Cliente: ${client}` : '';
+  const clientTxt = ((client && client!=='all') ? ` · Cliente: ${client}` : '') + ((type && type!=='all') ? ` · Servicio: ${type}` : '');
   document.getElementById('repPreview').innerHTML =
     `<strong>${periodLabel(year,month)}${clientTxt}:</strong> ${s.eventos} operaciones · Facturado ${fmtMoney(s.facturado)} · Costo ${fmtMoney(s.costo)} · Margen ${fmtMoney(s.margen)} (${fmtPct(s.margenPct)})`;
 }
 
-['repYear','repMonth','repClient'].forEach(id=>{
+['repYear','repMonth','repClient','repType'].forEach(id=>{
   document.getElementById(id).addEventListener('change', updateReportPreview);
 });
-['cmpYearA','cmpMonthA','cmpYearB','cmpMonthB','cmpClient'].forEach(id=>{
+['cmpYearA','cmpMonthA','cmpYearB','cmpMonthB','cmpClient','cmpType'].forEach(id=>{
   document.getElementById(id).addEventListener('change', renderComparativeView);
 });
 
@@ -1532,7 +1560,8 @@ function renderComparativeView(){
   const yA = document.getElementById('cmpYearA').value, mA = document.getElementById('cmpMonthA').value;
   const yB = document.getElementById('cmpYearB').value, mB = document.getElementById('cmpMonthB').value;
   const client = document.getElementById('cmpClient').value;
-  const dataA = getPeriodData(yA, mA, client), dataB = getPeriodData(yB, mB, client);
+  const type = document.getElementById('cmpType').value;
+  const dataA = getPeriodData(yA, mA, client, type), dataB = getPeriodData(yB, mB, client, type);
   const sA = buildSummary(dataA), sB = buildSummary(dataB);
   const labelA = periodLabel(yA, mA), labelB = periodLabel(yB, mB);
 
@@ -1890,13 +1919,14 @@ document.getElementById('btnDownloadReport').addEventListener('click', async (e)
   const year = document.getElementById('repYear').value;
   const month = document.getElementById('repMonth').value;
   const client = document.getElementById('repClient').value;
-  const data = getPeriodData(year, month, client);
-  if(!data.length){ alert('No hay operaciones en el periodo/cliente seleccionado.'); return; }
+  const type = document.getElementById('repType').value;
+  const data = getPeriodData(year, month, client, type);
+  if(!data.length){ alert('No hay operaciones en el periodo/cliente/servicio seleccionado.'); return; }
 
   await withButtonBusy(e.currentTarget, 'Generando…', async ()=>{
-    const clientTxt = (client && client!=='all') ? ` · ${client}` : '';
+    const clientTxt = ((client && client!=='all') ? ` · ${client}` : '') + ((type && type!=='all') ? ` · ${type}` : '');
     const label = periodLabel(year, month) + clientTxt;
-    const fileLabel = periodLabel(year, month) + (client && client!=='all' ? '_'+client : '');
+    const fileLabel = periodLabel(year, month) + (client && client!=='all' ? '_'+client : '') + (type && type!=='all' ? '_'+type : '');
     const s = buildSummary(data);
     const wb = new ExcelJS.Workbook();
     wb.creator = 'Handling Ops Board'; wb.created = new Date();
@@ -1953,13 +1983,14 @@ document.getElementById('btnDownloadComparative').addEventListener('click', asyn
   const yA = document.getElementById('cmpYearA').value, mA = document.getElementById('cmpMonthA').value;
   const yB = document.getElementById('cmpYearB').value, mB = document.getElementById('cmpMonthB').value;
   const client = document.getElementById('cmpClient').value;
-  const dataA = getPeriodData(yA, mA, client), dataB = getPeriodData(yB, mB, client);
-  if(!dataA.length && !dataB.length){ alert('No hay operaciones en los periodos/cliente seleccionados.'); return; }
+  const type = document.getElementById('cmpType').value;
+  const dataA = getPeriodData(yA, mA, client, type), dataB = getPeriodData(yB, mB, client, type);
+  if(!dataA.length && !dataB.length){ alert('No hay operaciones en los periodos/cliente/servicio seleccionados.'); return; }
 
   await withButtonBusy(e.currentTarget, 'Generando…', async ()=>{
-    const clientTxt = (client && client!=='all') ? ` · ${client}` : '';
+    const clientTxt = ((client && client!=='all') ? ` · ${client}` : '') + ((type && type!=='all') ? ` · ${type}` : '');
     const labelA = periodLabel(yA, mA), labelB = periodLabel(yB, mB);
-    const titleSuffix = (client && client!=='all') ? ` (${client})` : '';
+    const titleSuffix = [client, type].filter(v=>v && v!=='all').length ? ` (${[client, type].filter(v=>v && v!=='all').join(' · ')})` : '';
     const sA = buildSummary(dataA), sB = buildSummary(dataB);
 
     const wb = new ExcelJS.Workbook();
