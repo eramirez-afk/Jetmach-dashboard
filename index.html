@@ -54,7 +54,7 @@
   h1 span{color:var(--text-dim);font-weight:500;}
   .subline{color:var(--text-dim);font-size:13px;margin-top:6px;font-family:'IBM Plex Mono',monospace;}
 
-  .filters{display:flex;gap:10px;align-items:center;}
+  .filters{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
   .filters label{font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;margin-right:6px;font-family:'IBM Plex Mono',monospace;}
   select{
     background:var(--panel-2);
@@ -279,6 +279,10 @@
         <label>Servicio</label>
         <select id="typeFilter"></select>
       </div>
+      <div>
+        <label>Cliente</label>
+        <select id="clientFilter"></select>
+      </div>
     </div>
   </header>
 
@@ -381,6 +385,8 @@
         <select id="opMonthFilter"></select>
         <label style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;font-family:'IBM Plex Mono',monospace;">Servicio</label>
         <select id="opTypeFilter"></select>
+        <label style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;font-family:'IBM Plex Mono',monospace;">Cliente</label>
+        <select id="opClientFilter"></select>
         <span class="sync-badge" id="syncBadge">local</span>
       </div>
       <div style="display:flex;gap:8px;">
@@ -425,6 +431,8 @@
         <select id="doMonthFilter"></select>
         <span style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;font-family:'IBM Plex Mono',monospace;">Servicio</span>
         <select id="doTypeFilter"></select>
+        <span style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;font-family:'IBM Plex Mono',monospace;">Cliente</span>
+        <select id="doClientFilter"></select>
       </div>
     </div>
 
@@ -715,6 +723,17 @@ function init(){
   opTypeSel.addEventListener('change', ()=>{ typeSel.value = opTypeSel.value; doTypeSel.value = opTypeSel.value; render(); });
   doTypeSel.addEventListener('change', ()=>{ typeSel.value = doTypeSel.value; opTypeSel.value = doTypeSel.value; render(); });
 
+  const clientsAll = [...new Set(RAW.map(r=>r.cliente).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es'));
+  const clientSel = document.getElementById('clientFilter');
+  const opClientSel = document.getElementById('opClientFilter');
+  const doClientSel = document.getElementById('doClientFilter');
+  clientSel.innerHTML = '<option value="all">Todos</option>' + clientsAll.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('');
+  opClientSel.innerHTML = clientSel.innerHTML;
+  doClientSel.innerHTML = clientSel.innerHTML;
+  clientSel.addEventListener('change', ()=>{ opClientSel.value = clientSel.value; doClientSel.value = clientSel.value; render(); });
+  opClientSel.addEventListener('change', ()=>{ clientSel.value = opClientSel.value; doClientSel.value = opClientSel.value; render(); });
+  doClientSel.addEventListener('change', ()=>{ clientSel.value = doClientSel.value; opClientSel.value = doClientSel.value; render(); });
+
   const dates = RAW.map(r=>r.fecha).sort();
   if(dates.length){
     document.getElementById('rangeLabel').textContent = `Datos ${dates[0]} → ${dates[dates.length-1]} · ${RAW.length} eventos`;
@@ -734,7 +753,8 @@ function getFiltered(){
   const y = document.getElementById('yearFilter').value;
   const m = document.getElementById('monthFilter').value;
   const t = document.getElementById('typeFilter').value;
-  return RAW.filter(r => (y==='all' || r.year==+y) && (m==='all' || r.month==+m) && (t==='all' || r.tipo_evento===t));
+  const c = document.getElementById('clientFilter').value;
+  return RAW.filter(r => (y==='all' || r.year==+y) && (m==='all' || r.month==+m) && (t==='all' || r.tipo_evento===t) && (c==='all' || r.cliente===c));
 }
 
 function render(){
