@@ -255,6 +255,7 @@
     header{flex-direction:column;align-items:flex-start;}
   }
 </style>
+<link rel="stylesheet" href="validacion.css">
 </head>
 <body>
 <div class="wrap">
@@ -291,6 +292,7 @@
     <button class="tab-btn" data-tab="operaciones">Operaciones</button>
     <button class="tab-btn" data-tab="dashboard-op">Dashboard Operacional</button>
     <button class="tab-btn" data-tab="reportes">Reportes</button>
+    <button class="tab-btn" data-tab="validacion">Validación y anexo</button>
   </nav>
 
   <section id="view-resumen">
@@ -373,6 +375,35 @@
     </div>
   </div>
 
+  </section>
+
+  <section id="view-validacion" style="display:none;">
+    <div class="panel">
+      <h2>Validación y anexo de documentación <small>Handling · AFAC</small></h2>
+      <div class="field">
+        <label>Régimen</label>
+        <div class="segmented" id="valReg"><button class="active" data-reg="91">Part 91</button><button data-reg="135">Part 135</button></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Matrícula</label><input type="text" id="valMat" placeholder="XA-ABC"></div>
+        <div class="field"><label>Ruta</label><input type="text" id="valRuta" placeholder="MMAN – MMMY"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Fecha de salida</label><input type="date" id="valF1"></div>
+        <div class="field"><label>Fecha de regreso (opcional)</label><input type="date" id="valF2"></div>
+      </div>
+      <div class="field"><label>Enlace a la carpeta con la documentación del vuelo</label><input type="text" id="valLink" placeholder="https://drive.google.com/drive/folders/..."></div>
+      <div class="val-actions" style="margin-top:4px"><button class="btn primary" id="valRevisar">Revisar documentación</button></div>
+      <p class="modal-note" id="valStatus"></p>
+    </div>
+    <details class="panel">
+      <summary>Conexión con Google Drive</summary>
+      <div class="field"><label>URL del script (Apps Script, termina en /exec)</label><input type="text" id="valUrl" placeholder="https://script.google.com/macros/s/.../exec"></div>
+      <div class="field"><label>Clave</label><input type="password" id="valKey" autocomplete="off"></div>
+      <p class="modal-note">Se guardan solo en este navegador. Instrucciones en <code>apps-script/Code.gs</code>.</p>
+    </details>
+    <div id="valRevision"></div>
+    <div id="valSalida"></div>
   </section>
 
   <section id="view-operaciones" style="display:none;">
@@ -923,6 +954,7 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
     document.getElementById('view-operaciones').style.display = tab==='operaciones' ? '' : 'none';
     document.getElementById('view-dashboard-op').style.display = tab==='dashboard-op' ? '' : 'none';
     document.getElementById('view-reportes').style.display = tab==='reportes' ? '' : 'none';
+    document.getElementById('view-validacion').style.display = tab==='validacion' ? '' : 'none';
     if(tab==='operaciones') renderOpsTable();
     if(tab==='dashboard-op') renderDashboardOp();
     if(tab==='reportes') renderComparativeView();
@@ -2089,5 +2121,6 @@ document.getElementById('btnDownloadComparative').addEventListener('click', asyn
 
 loadData();
 </script>
+<script src="validacion.js" defer></script>
 </body>
 </html>
