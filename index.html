@@ -392,12 +392,18 @@
         <div class="field"><label>Fecha de salida</label><input type="date" id="valF1"></div>
         <div class="field"><label>Fecha de regreso (opcional)</label><input type="date" id="valF2"></div>
       </div>
-      <div class="field"><label>Enlace a la carpeta con la documentación del vuelo</label><input type="text" id="valLink" placeholder="https://drive.google.com/drive/folders/..."></div>
+      <div class="field"><label>Documentos del vuelo (PDF, PNG o JPG)</label>
+        <div id="valDrop" class="val-drop">Arrastra aquí los archivos descargados o <button type="button" class="btn" id="valPick">Elegir archivos</button>
+          <input type="file" id="valInput" multiple accept=".pdf,.png,.jpg,.jpeg" hidden></div>
+        <p class="modal-note" id="valCount"></p>
+      </div>
       <div class="val-actions" style="margin-top:4px"><button class="btn primary" id="valRevisar">Revisar documentación</button></div>
       <p class="modal-note" id="valStatus"></p>
     </div>
     <details class="panel">
       <summary>Conexión con Google Drive</summary>
+      <p class="modal-note">Opcional: sirve para guardar el expediente en Drive y para leer carpetas de Drive.</p>
+      <div class="field"><label>Alternativa: enlace a una carpeta de Drive con los documentos</label><input type="text" id="valLink" placeholder="https://drive.google.com/drive/folders/..."></div>
       <div class="field"><label>URL del script (Apps Script, termina en /exec)</label><input type="text" id="valUrl" placeholder="https://script.google.com/macros/s/.../exec"></div>
       <div class="field"><label>Clave</label><input type="password" id="valKey" autocomplete="off"></div>
       <p class="modal-note">Se guardan solo en este navegador. Instrucciones en <code>apps-script/Code.gs</code>.</p>

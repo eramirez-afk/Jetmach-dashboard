@@ -15,3 +15,7 @@
 .val-err{color:var(--rose);}
 .val-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;}
 .val-actions a.btn{text-decoration:none;display:inline-block;}
+.val-drop{border:1.5px dashed var(--hairline);border-radius:10px;padding:18px;text-align:center;font-size:13px;color:var(--text-dim);}
+.val-drop.over{border-color:var(--gold);background:rgba(217,164,65,.08);color:var(--gold);}
+.val-drop .btn{margin-left:6px;}
+#valCount a{color:var(--gold);}

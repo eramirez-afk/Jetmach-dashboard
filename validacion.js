@@ -9,12 +9,13 @@ const PDFLIB_URL = 'https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-li
 /* Checklist por régimen. Edita aquí los documentos y las palabras clave
  * que se buscan en el NOMBRE de cada archivo (sin acentos, en minúsculas). */
 const CHECK_BASE = [
-  {nombre:'Certificado de matrícula',           claves:['matricula','registro']},
-  {nombre:'Certificado de aeronavegabilidad',   claves:['aeronavegabilidad','airworthiness']},
+  {nombre:'Certificado de matrícula',           claves:['matricula','registro','registration','reg']},
+  {nombre:'Certificado de aeronavegabilidad',   claves:['aeronavegabilidad','airworthiness','aw']},
   {nombre:'Póliza de seguro',                   claves:['seguro','poliza','insurance']},
-  {nombre:'Licencias y médicos de tripulación', claves:['licencia','medico','tripulacion','crew']},
-  {nombre:'Plan de vuelo',                      claves:['plan de vuelo','flight plan']},
-  {nombre:'General Declaration / manifiesto',   claves:['general declaration','gendec','manifiesto']}
+  {nombre:'Licencias de tripulación',           claves:['licencia','license','lic']},
+  {nombre:'Certificados médicos',               claves:['medico','medical','med']},
+  {nombre:'General Declaration de entrada',     claves:['arr gendec','gendec in','gendecs in']},
+  {nombre:'General Declaration de salida',      claves:['dep gendec','gendec out','gendecs out']}
 ];
 const CHECK_135 = [
   {nombre:'Certificado de operador (AOC)',      claves:['aoc','certificado de operador']},
@@ -45,6 +46,29 @@ function lsSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
 
 let reg = '91';
 let state = null;
+let locales = [];   // archivos elegidos desde la computadora
+
+function tipoLocal(f){
+  const n = f.name.toLowerCase();
+  if(n.endsWith('.pdf')) return 'pdf';
+  if(n.endsWith('.png')) return 'png';
+  if(n.endsWith('.jpg') || n.endsWith('.jpeg')) return 'jpg';
+  return '';
+}
+function detectaMatricula(nombres){
+  const re = /(^|[^A-Z0-9])(N\d{1,5}[A-Z]{0,2}|X[ABC]-?[A-Z]{3})(?![A-Z0-9])/;
+  for(const n of nombres){ const m = re.exec(n.toUpperCase()); if(m) return m[2]; }
+  return '';
+}
+function agregarLocales(lista){
+  for(const f of lista){ if(!locales.some(x => x.name===f.name && x.size===f.size)) locales.push(f); }
+  const c = $('valCount');
+  c.innerHTML = locales.length ? esc(locales.length+' archivo(s) cargado(s)')+' · <a href="#" id="valLimpiar">Quitar todos</a>' : '';
+  if(locales.length){
+    $('valLimpiar').addEventListener('click', e => { e.preventDefault(); locales = []; $('valInput').value=''; agregarLocales([]); });
+    if(!$('valMat').value.trim()){ const m = detectaMatricula(locales.map(f=>f.name)); if(m) $('valMat').value = m; }
+  }
+}
 
 function setStatus(msg, err){ const s=$('valStatus'); s.className = 'modal-note'+(err?' val-err':''); s.textContent = msg||''; }
 
@@ -75,15 +99,24 @@ async function revisar(){
     f1: $('valF1').value, f2: $('valF2').value,
     link: $('valLink').value.trim()
   };
-  if(!datos.mat || !datos.ruta || !datos.f1 || !datos.link){
-    setStatus('Completa matrícula, ruta, fecha de salida y el enlace de la carpeta.', true); return;
+  if(!datos.mat || !datos.ruta || !datos.f1){
+    setStatus('Completa matrícula, ruta y fecha de salida.', true); return;
+  }
+  if(!locales.length && !datos.link){
+    setStatus('Sube los documentos del vuelo (o pega un enlace de carpeta de Drive).', true); return;
   }
   const btn = $('valRevisar'); btn.disabled = true;
   $('valSalida').innerHTML = '';
   try{
-    setStatus('Leyendo la carpeta de Drive…');
-    const res = await api({action:'list', folder:datos.link});
-    state = {reg, datos, carpeta:res.carpeta, files:res.files};
+    if(locales.length){
+      const files = locales.map((f,i) => { const t = tipoLocal(f);
+        return {id:'L'+i, name:f.name, mime:f.type, soportado:!!t, carpeta:'', file:f, tipo:t}; });
+      state = {reg, datos, carpeta:'Archivos cargados', files};
+    }else{
+      setStatus('Leyendo la carpeta de Drive…');
+      const res = await api({action:'list', folder:datos.link});
+      state = {reg, datos, carpeta:res.carpeta, files:res.files};
+    }
     renderRevision();
     setStatus('Revisión lista. Marca los archivos que quieres incluir y une el expediente.');
   }catch(e){ setStatus(e.message, true); }
@@ -117,12 +150,21 @@ function renderRevision(){
          (f.soportado?'':'<span class="val-tag skip">No se puede unir</span>')+'</label>';
   });
   if(!orden.length) h += '<p class="modal-note">La carpeta no tiene archivos.</p>';
-  h += '</div><div class="val-actions"><button class="btn primary" id="valUnir">Unir en un PDF y guardar en Drive</button></div></div>';
+  h += '</div><div class="val-actions"><button class="btn primary" id="valUnir">Unir en un PDF</button></div></div>';
   $('valRevision').innerHTML = h;
   $('valUnir').addEventListener('click', unir);
 }
 
 /* ---------- Paso 2: unir y guardar ---------- */
+async function agregaImagen(merged, bytes, tipo){
+  const img = tipo==='png' ? await merged.embedPng(bytes) : await merged.embedJpg(bytes);
+  const hor = img.width > img.height;
+  const W = hor ? 792 : 612, H = hor ? 612 : 792;
+  const sc = Math.min((W-72)/img.width, (H-72)/img.height, 1);
+  const w = img.width*sc, h = img.height*sc;
+  merged.addPage([W,H]).drawImage(img, {x:(W-w)/2, y:(H-h)/2, width:w, height:h});
+}
+
 async function unir(){
   const s = state, btn = $('valUnir');
   const marcados = new Set([...$('valFiles').querySelectorAll('input:checked')].map(i => i.dataset.id));
@@ -135,24 +177,40 @@ async function unir(){
     const unidos = [], omitidos = [];
     for(let i=0;i<sel.length;i++){
       const f = sel[i];
-      setStatus('Descargando '+(i+1)+' de '+sel.length+': '+f.name+'…');
+      setStatus('Procesando '+(i+1)+' de '+sel.length+': '+f.name+'…');
       try{
-        const r = await api({action:'get', id:f.id});
-        const src = await PDFLib.PDFDocument.load(b64ToBytes(r.data), {ignoreEncryption:true});
-        const pages = await merged.copyPages(src, src.getPageIndices());
-        pages.forEach(p => merged.addPage(p));
+        if(f.file){
+          const bytes = new Uint8Array(await f.file.arrayBuffer());
+          if(f.tipo==='pdf'){
+            const src = await PDFLib.PDFDocument.load(bytes, {ignoreEncryption:true});
+            (await merged.copyPages(src, src.getPageIndices())).forEach(p => merged.addPage(p));
+          }else{
+            await agregaImagen(merged, bytes, f.tipo);
+          }
+        }else{
+          const r = await api({action:'get', id:f.id});
+          const src = await PDFLib.PDFDocument.load(b64ToBytes(r.data), {ignoreEncryption:true});
+          (await merged.copyPages(src, src.getPageIndices())).forEach(p => merged.addPage(p));
+        }
         unidos.push(f.name);
       }catch(e){ omitidos.push(f.name+' ('+e.message+')'); }
     }
     if(!merged.getPageCount()) throw new Error('No se pudo unir ningún archivo.');
     const bytes = await merged.save();
-    const d = s.datos, f1 = d.f1;
-    const nombre = d.mat+'_'+f1+'_Part'+s.reg+'_Expediente.pdf';
-    setStatus('Guardando en Drive…');
-    const g = await api({action:'save', name:nombre, subfolder:d.mat+'_'+f1, data:bytesToB64(bytes)});
+    const d = s.datos;
+    const nombre = d.mat+'_'+d.f1+'_Part'+s.reg+'_Expediente.pdf';
     const blobUrl = URL.createObjectURL(new Blob([bytes],{type:'application/pdf'}));
-    renderSalida({nombre, paginas:merged.getPageCount(), unidos, omitidos, g, blobUrl});
-    setStatus('Expediente guardado en Drive.');
+    let g = null, nota = '';
+    if($('valUrl').value.trim() && $('valKey').value.trim()){
+      try{
+        setStatus('Guardando en Drive…');
+        g = await api({action:'save', name:nombre, subfolder:d.mat+'_'+d.f1, data:bytesToB64(bytes)});
+      }catch(e){ nota = 'No se pudo guardar en Drive: '+e.message; }
+    }else{
+      nota = 'Sin conexión a Drive: el PDF solo se descarga. Puedes configurarla en "Conexión con Google Drive".';
+    }
+    renderSalida({nombre, paginas:merged.getPageCount(), unidos, omitidos, g, nota, blobUrl});
+    setStatus(g ? 'Expediente guardado en Drive.' : 'Expediente listo.');
   }catch(e){ setStatus(e.message, true); }
   btn.disabled = false;
 }
@@ -172,8 +230,9 @@ function renderSalida(r){
   let h = '<div class="panel"><h2>Expediente <small>'+r.paginas+' páginas · '+r.unidos.length+' archivos</small></h2>';
   h += '<div class="val-list"><div class="val-row"><span>'+esc(r.nombre)+'</span></div></div>';
   if(r.omitidos.length) h += '<p class="modal-note val-err">Omitidos: '+esc(r.omitidos.join('; '))+'</p>';
-  h += '<div class="val-actions"><a class="btn" href="'+esc(r.g.url)+'" target="_blank" rel="noopener">Abrir en Drive</a>'+
-       '<a class="btn" href="'+esc(r.blobUrl)+'" download="'+esc(r.nombre)+'">Descargar PDF</a></div></div>';
+  if(r.nota) h += '<p class="modal-note">'+esc(r.nota)+'</p>';
+  h += '<div class="val-actions"><a class="btn primary" href="'+esc(r.blobUrl)+'" download="'+esc(r.nombre)+'">Descargar PDF</a>'+
+       (r.g ? '<a class="btn" href="'+esc(r.g.url)+'" target="_blank" rel="noopener">Abrir en Drive</a>' : '')+'</div></div>';
   h += '<div class="panel"><h2>Borrador para AFAC <small>solo cambian los campos resaltados</small></h2>'+
        '<p class="val-mail">'+borrador(d,true)+'</p>'+
        '<div class="val-actions" style="margin-top:0"><button class="btn primary" id="valCopiar">Copiar borrador</button>'+
@@ -198,6 +257,12 @@ function init(){
     reg = b.dataset.reg;
     $('valReg').querySelectorAll('button').forEach(x => x.classList.toggle('active', x===b));
   });
+  $('valPick').addEventListener('click', () => $('valInput').click());
+  $('valInput').addEventListener('change', e => agregarLocales([...e.target.files]));
+  const dz = $('valDrop');
+  ['dragenter','dragover'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.add('over'); }));
+  ['dragleave','drop'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.remove('over'); }));
+  dz.addEventListener('drop', e => agregarLocales([...(e.dataTransfer ? e.dataTransfer.files : [])]));
   $('valRevisar').addEventListener('click', revisar);
 }
 if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
