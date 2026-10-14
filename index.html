@@ -84,7 +84,7 @@
 
   /* KPI strip */
   .kpis{
-    display:grid;grid-template-columns:repeat(5,1fr);gap:1px;
+    display:grid;grid-template-columns:repeat(6,1fr);gap:1px;
     background:var(--hairline);
     border:1px solid var(--hairline);
     border-radius:var(--radius);
@@ -95,6 +95,7 @@
   .kpi .label{font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;font-family:'IBM Plex Mono',monospace;margin-bottom:10px;}
   .kpi .value{font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:700;letter-spacing:-0.01em;}
   .kpi .value.small{font-size:20px;}
+  .kpi .sub{font-size:11px;color:var(--text-dim);margin-top:6px;font-family:'IBM Plex Mono',monospace;}
   .kpi.accent .value{color:var(--gold);}
   .kpi.pos .value{color:var(--teal);}
 
@@ -317,6 +318,11 @@
     <div class="kpi pos">
       <div class="label">Margen %</div>
       <div class="value" id="kMargenPct">—</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Ticket promedio</div>
+      <div class="value small" id="kTicket">—</div>
+      <div class="sub">margen por operación</div>
     </div>
   </div>
 
@@ -809,6 +815,7 @@ function render(){
   document.getElementById('kCosto').textContent = fmtMoney(costo);
   document.getElementById('kMargen').textContent = fmtMoney(margen);
   document.getElementById('kMargenPct').textContent = fmtPct(margenPct);
+  document.getElementById('kTicket').textContent = fmtMoney(data.length ? margen/data.length : 0);
 
   renderTrend(data, y, m);
   renderTypeChart(data);
@@ -1541,7 +1548,8 @@ function buildSummary(data){
   const margenPct = facturado ? margen/facturado : 0;
   const catTotals = {};
   CATEGORY_FIELDS.forEach(f=>{ catTotals[f.label] = data.reduce((s,r)=>s+(r[f.key]||0),0); });
-  return { eventos:data.length, facturado, costo, margen, margenPct, catTotals };
+  const ticket = data.length ? margen/data.length : 0;
+  return { eventos:data.length, facturado, costo, margen, margenPct, ticket, catTotals };
 }
 
 function populateReportFilters(){
@@ -1635,6 +1643,7 @@ function renderComparativeView(){
     ['Costo', sA.costo, sB.costo, true],
     ['Margen', sA.margen, sB.margen, true],
     ['Margen %', sA.margenPct, sB.margenPct, 'pct'],
+    ['Ticket promedio (margen por operación)', sA.ticket, sB.ticket, true],
   ];
   document.getElementById('cmpTbody').innerHTML = mainRows.map(([label,a,b,isMoney])=>{
     const cls = deltaClass(a,b);
